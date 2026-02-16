@@ -1,0 +1,20 @@
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant API as API
+  participant DB as Postgres
+  participant W as Worker
+  participant MQ as RabbitMQ
+
+  C->>API: POST /v1/orders (Idempotency-Key)
+  API->>DB: INSERT order + outbox(order.created)
+  API-->>C: 200 CREATED
+
+  W->>DB: claim outbox
+  W->>MQ: publish order.created
+  MQ-->>W: deliver order.created
+  W->>DB: reserve inventory; update order->RESERVED
+
+  C->>API: POST /v1/orders/{id}/confirm (Idempotency-Key)
+  API->>DB: update order->CONFIRMED + outbox(order.confirmed)
+```

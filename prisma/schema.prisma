@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id
+  name      String
+  plan      String   @default("pro")
+  region    String   @default("region-a")
+  createdAt DateTime @default(now())
+
+  users     User[]
+  orders    Order[]
+  inventory InventoryItem[]
+  flags     FeatureFlag[]
+}
+
+model User {
+  id            String   @id @default(uuid())
+  tenantId      String?
+  tenant        Tenant?  @relation(fields: [tenantId], references: [id])
+  email         String   @unique
+  passwordHash  String
+  isGlobalAdmin Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  roles         UserRole[]
+}
+
+model Role {
+  name        String @id
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+model Permission {
+  code String @id
+  roles RolePermission[]
+}
+
+model UserRole {
+  id       String @id @default(uuid())
+  userId   String
+  roleName String
+  user     User   @relation(fields: [userId], references: [id])
+  role     Role   @relation(fields: [roleName], references: [name])
+
+  @@unique([userId, roleName])
+}
+
+model RolePermission {
+  id             String     @id @default(uuid())
+  roleName       String
+  permissionCode String
+  role           Role       @relation(fields: [roleName], references: [name])
+  permission     Permission @relation(fields: [permissionCode], references: [code])
+
+  @@unique([roleName, permissionCode])
+}
+
+model Policy {
+  id            String   @id @default(uuid())
+  permissionCode String  @unique
+  effect        String   @default("allow")
+  allowedPlans  String[]
+  allowedRegions String[]
+  createdAt     DateTime @default(now())
+}
+
+model FeatureFlag {
+  id             String   @id @default(uuid())
+  tenantId       String
+  name           String
+  enabled        Boolean  @default(false)
+  rolloutPercent Int      @default(100)
+  allowedRoles   String[]
+  createdAt      DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, name])
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  tenantId      String?
+  actorSub      String
+  action        String
+  target        String
+  detail        Json
+  correlationId String
+  createdAt     DateTime @default(now())
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  tenantId   String
+  customerId String
+  status     String      @default("CREATED")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id])
+  items  OrderItem[]
+}
+
+model OrderItem {
+  id      String @id @default(uuid())
+  orderId String
+  sku     String
+  qty     Int
+  price   Decimal @db.Decimal(18,2)
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+model InventoryItem {
+  id          String   @id @default(uuid())
+  tenantId    String
+  sku         String
+  availableQty Int     @default(0)
+  reservedQty  Int     @default(0)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, sku])
+}
+
+model OutboxEvent {
+  id           String   @id @default(uuid())
+  tenantId     String
+  eventType    String
+  aggregateType String
+  aggregateId  String
+  payload      Json
+  status       String   @default("PENDING")
+  attempts     Int      @default(0)
+  availableAt  DateTime @default(now())
+  lockedAt     DateTime?
+  lockedBy     String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([eventType])
+  @@index([status])
+}

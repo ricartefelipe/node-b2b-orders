@@ -1,0 +1,24 @@
+{
+  "id": null,
+  "title": "node-b2b-orders Overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Process CPU (node default)",
+      "targets": [
+        {
+          "expr": "process_cpu_user_seconds_total",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      }
+    }
+  ]
+}

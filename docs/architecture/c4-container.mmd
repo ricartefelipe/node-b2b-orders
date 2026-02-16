@@ -1,0 +1,10 @@
+```mermaid
+flowchart LR
+  Client[Client] -->|HTTP| API[NestJS API]
+  API -->|SQL| DB[(PostgreSQL)]
+  API -->|Redis| Redis[(Redis)]
+  Worker[Worker] -->|SQL| DB
+  Worker -->|AMQP| MQ[(RabbitMQ)]
+  API -->|/metrics| Prom[Prometheus]
+  Prom --> Graf[Grafana]
+```
