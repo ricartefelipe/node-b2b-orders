@@ -1,0 +1,11 @@
+```mermaid
+erDiagram
+  TENANT ||--o{ USER : has
+  USER ||--o{ USERROLE : has
+  ROLE ||--o{ ROLEPERMISSION : has
+  PERMISSION ||--o{ ROLEPERMISSION : maps
+  TENANT ||--o{ ORDER : owns
+  ORDER ||--o{ ORDERITEM : has
+  TENANT ||--o{ INVENTORYITEM : has
+  TENANT ||--o{ OUTBOXEVENT : emits
+```
