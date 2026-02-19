@@ -74,9 +74,9 @@ export class RedisService {
     const now = Date.now() / 1000.0;
     const key = `ratelimit:${tenantId}:${sub}:${group}`;
 
-    if (!this.tokenBucketSha) this.tokenBucketSha = await this.client.script('LOAD', LUA_TOKEN_BUCKET);
+    if (!this.tokenBucketSha) this.tokenBucketSha = (await this.client.script('LOAD', LUA_TOKEN_BUCKET)) as string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res: any = await this.client.evalsha(this.tokenBucketSha, 1, key, capacity, refillRate, now, 1);
+    const res: any = await this.client.evalsha(this.tokenBucketSha as string, 1, key, capacity, refillRate, now, 1);
     const allowed = Number(res[0]) === 1;
     const tokens = Math.floor(Number(res[1]));
     const ttl = Number(res[2]);
