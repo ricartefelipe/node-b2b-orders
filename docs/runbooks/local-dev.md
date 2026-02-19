@@ -1,3 +1,0 @@
-# Local dev
-
-Use scripts/.
