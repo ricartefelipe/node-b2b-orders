@@ -166,7 +166,7 @@ async function main() {
   await chConsume.prefetch(10);
   await chConsume.consume(
     QUEUE,
-    async (msg) => {
+    async (msg: any) => {
       if (!msg) return;
       const routingKey = msg.fields.routingKey;
       try {
