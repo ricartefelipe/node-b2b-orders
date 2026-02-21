@@ -81,7 +81,6 @@ async function handleMessage(prisma: PrismaClient, routingKey: string, body: Any
     if (!order) return;
 
     await prisma.$transaction(async (tx) => {
-      // Reserve inventory for each item
       for (const item of order.items) {
         const inv = await tx.inventoryItem.findUnique({ where: { tenantId_sku: { tenantId, sku: item.sku } } });
         if (!inv || inv.availableQty < item.qty) {
@@ -116,7 +115,6 @@ async function handleMessage(prisma: PrismaClient, routingKey: string, body: Any
     if (!order) return;
 
     await prisma.$transaction(async (tx) => {
-      // Release reserved inventory if previously reserved
       if (order.status === 'RESERVED') {
         for (const item of order.items) {
           await tx.inventoryItem.update({

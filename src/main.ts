@@ -38,7 +38,6 @@ async function bootstrap() {
     const tenantId = req.headers['x-tenant-id'] || '';
     req.tenantId = tenantId;
 
-    // Chaos injection (optional)
     const chaos = await redis.getChaosConfig(tenantId || 'public');
     if (chaos.enabled) {
       if (chaos.latencyMs > 0) {
@@ -50,7 +49,6 @@ async function bootstrap() {
       }
     }
 
-    // Rate limit (skip docs/metrics/health)
     const path: string = req.url || '';
     if (path.startsWith('/docs') || path.startsWith('/metrics') || path.startsWith('/healthz') || path.startsWith('/readyz') || path.startsWith('/openapi')) {
       return;
@@ -74,7 +72,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((e) => {
-  // eslint-disable-next-line no-console
   console.error(e);
   process.exit(1);
 });
