@@ -1,6 +1,6 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Registry } from 'prom-client';
+import * as promClient from 'prom-client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 
@@ -11,10 +11,6 @@ export class MetricsController {
 
   @Get('metrics')
   async metrics(@Res() res: any) {
-    const registry = new Registry();
-    // Default registry already has metrics; for simplicity we return the global one
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const promClient = require('prom-client');
     res.header('Content-Type', promClient.register.contentType);
     res.send(await promClient.register.metrics());
   }

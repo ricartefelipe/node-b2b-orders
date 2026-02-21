@@ -92,7 +92,6 @@ async function main() {
     create: { userId: sales.id, roleName: 'sales' },
   });
 
-  // Inventory seed
   const skus = [
     { sku: 'SKU-1', availableQty: 100 },
     { sku: 'SKU-2', availableQty: 50 },
