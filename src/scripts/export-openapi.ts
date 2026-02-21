@@ -19,12 +19,10 @@ async function main() {
   fs.writeFileSync('docs/api/openapi.json', JSON.stringify(document, null, 2), 'utf8');
   fs.writeFileSync('docs/api/openapi.yaml', yaml.dump(document, { noRefs: true }), 'utf8');
   await app.close();
-  // eslint-disable-next-line no-console
   console.log('Exported docs/api/openapi.{json,yaml}');
 }
 
 main().catch((e) => {
-  // eslint-disable-next-line no-console
   console.error(e);
   process.exit(1);
 });
