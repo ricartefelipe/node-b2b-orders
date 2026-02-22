@@ -1,11 +1,15 @@
 import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
+
 import { AppModule } from '../app.module';
 
 async function main() {
-  const app = await NestFactory.create(AppModule, { logger: false });
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
+    logger: false,
+  });
   app.setGlobalPrefix('v1');
 
   const config = new DocumentBuilder()
