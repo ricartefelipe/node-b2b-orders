@@ -17,14 +17,14 @@ async function main() {
     await prisma.role.upsert({ where: { name }, update: {}, create: { name } });
   }
 
-  const perms = ['orders:write', 'orders:read', 'inventory:read', 'admin:write', 'profile:read'];
+  const perms = ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'admin:write', 'profile:read'];
   for (const code of perms) {
     await prisma.permission.upsert({ where: { code }, update: {}, create: { code } });
   }
 
   const roleMap: Record<string, string[]> = {
     admin: perms,
-    ops: ['orders:write', 'orders:read', 'inventory:read', 'profile:read'],
+    ops: ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'profile:read'],
     sales: ['orders:read', 'inventory:read', 'profile:read'],
   };
 
@@ -42,6 +42,7 @@ async function main() {
     { permissionCode: 'orders:write', allowedPlans: ['pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
     { permissionCode: 'orders:read', allowedPlans: ['free', 'pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
     { permissionCode: 'inventory:read', allowedPlans: ['free', 'pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
+    { permissionCode: 'inventory:write', allowedPlans: ['pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
     { permissionCode: 'admin:write', allowedPlans: ['enterprise'], allowedRegions: ['region-a', 'region-b'] },
     { permissionCode: 'profile:read', allowedPlans: ['free', 'pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
   ];
