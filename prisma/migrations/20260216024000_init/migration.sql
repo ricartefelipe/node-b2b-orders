@@ -1,4 +1,3 @@
--- Initial schema for node-b2b-orders
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS "Tenant" (
