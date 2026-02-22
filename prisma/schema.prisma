@@ -131,6 +131,22 @@ model InventoryItem {
   @@unique([tenantId, sku])
 }
 
+model InventoryAdjustment {
+  id             String   @id @default(uuid())
+  tenantId       String
+  sku            String
+  type           String
+  qty            Int
+  reason         String
+  actorSub       String
+  correlationId  String   @default("")
+  idempotencyKey String?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, sku])
+  @@index([tenantId, createdAt])
+}
+
 model OutboxEvent {
   id           String   @id @default(uuid())
   tenantId     String

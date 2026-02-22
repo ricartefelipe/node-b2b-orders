@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../shared/auth/jwt.guard';
@@ -7,6 +7,7 @@ import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
 
+import { CreateAdjustmentDto, ListAdjustmentsQueryDto } from './dto';
 import { InventoryService } from './inventory.service';
 
 @ApiTags('inventory')
@@ -22,5 +23,25 @@ export class InventoryController {
   async list(@Req() req: any, @Query('sku') sku?: string) {
     const tenantId = req.headers['x-tenant-id'];
     return this.inventory.list(tenantId, sku);
+  }
+
+  @Post('adjustments')
+  @Permission('inventory:write')
+  async createAdjustment(
+    @Req() req: any,
+    @Headers('idempotency-key') idem: string,
+    @Body() body: CreateAdjustmentDto,
+  ) {
+    const tenantId = req.headers['x-tenant-id'];
+    const correlationId = req.correlationId || '';
+    const actorSub = req.user?.sub || 'unknown';
+    return this.inventory.createAdjustment(tenantId, correlationId, actorSub, idem, body.sku, body.type, body.qty, body.reason);
+  }
+
+  @Get('adjustments')
+  @Permission('inventory:read')
+  async listAdjustments(@Req() req: any, @Query() query: ListAdjustmentsQueryDto) {
+    const tenantId = req.headers['x-tenant-id'];
+    return this.inventory.listAdjustments(tenantId, query.sku, query.limit, query.offset);
   }
 }
