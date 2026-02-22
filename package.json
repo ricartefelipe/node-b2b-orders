@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "description": "NestJS + Prisma demo: B2B Orders & Inventory with outbox, saga, idempotency, RBAC/ABAC, metrics.",
+  "author": "felipericarte <felipericartem@gmail.com>",
   "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/main.js",
-    "start:worker": "node dist/worker/main.js",
+    "start": "node dist/src/main.js",
+    "start:worker": "node dist/src/worker/main.js",
     "lint": "eslint .",
     "format": "prettier -w .",
     "test": "jest",
@@ -15,7 +16,7 @@
     "prisma:generate": "prisma generate",
     "migrate": "prisma migrate deploy",
     "seed": "prisma db seed",
-    "api:export": "node dist/scripts/export-openapi.js"
+    "api:export": "node dist/src/scripts/export-openapi.js"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

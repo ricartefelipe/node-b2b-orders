@@ -31,7 +31,8 @@ export class OrdersController {
   async confirm(@Req() req: any, @Headers('idempotency-key') idem: string, @Param('id') id: string) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
-    return this.orders.confirmOrder(tenantId, correlationId, idem, id);
+    const actorSub = req.user?.sub || 'unknown';
+    return this.orders.confirmOrder(tenantId, correlationId, idem, id, actorSub);
   }
 
   @Post(':id/cancel')
@@ -39,7 +40,8 @@ export class OrdersController {
   async cancel(@Req() req: any, @Param('id') id: string) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
-    return this.orders.cancelOrder(tenantId, correlationId, id);
+    const actorSub = req.user?.sub || 'unknown';
+    return this.orders.cancelOrder(tenantId, correlationId, id, actorSub);
   }
 
   @Get(':id')
