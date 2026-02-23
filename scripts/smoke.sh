@@ -2,6 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+[ -f .env ] && set -a && source .env && set +a
+
 ./scripts/up.sh
 ./scripts/migrate.sh
 ./scripts/seed.sh
@@ -76,6 +78,18 @@ CONFIRM_JSON=$(curl -sS -X POST "$API_BASE/v1/orders/$ORDER_ID/confirm" \
   -H "Content-Type: application/json")
 CONFIRM_STATUS=$(json_get "$CONFIRM_JSON" "status")
 assert_eq "$CONFIRM_STATUS" "CONFIRMED" "order confirmed"
+
+# --- Simulate payment.settled (order->PAID) ---
+echo "[5b] Simulate payment.settled -> order PAID"
+# Script runs on host, so use localhost:5673 (mapped port). Override via RABBITMQ_HOST_URL.
+RABBIT_HOST="${RABBITMQ_HOST_URL:-amqp://guest:guest@localhost:5673}"
+RABBITMQ_URL="$RABBIT_HOST" node scripts/publish-payment-settled.js "$ORDER_ID" "$TENANT" 2>/dev/null || true
+sleep 2
+ORDER_PAID=$(curl -sS "$API_BASE/v1/orders/$ORDER_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Tenant-Id: $TENANT")
+PAID_STATUS=$(json_get "$ORDER_PAID" "status")
+assert_eq "$PAID_STATUS" "PAID" "order paid after payment.settled"
 
 # --- Tenant mismatch ---
 echo "[6] Negative test: tenant mismatch -> 403"

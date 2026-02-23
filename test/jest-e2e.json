@@ -1,7 +1,5 @@
 {
   "preset": "ts-jest",
   "testEnvironment": "node",
-  "testMatch": [
-    "**/test/e2e/**/*.spec.ts"
-  ]
+  "testMatch": ["**/test/e2e/**/*.spec.ts"]
 }

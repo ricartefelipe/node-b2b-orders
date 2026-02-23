@@ -44,13 +44,16 @@ async function bootstrap() {
         await new Promise((r) => setTimeout(r, chaos.latencyMs));
       }
       if (chaos.failPercent > 0 && Math.floor(Math.random() * 100) < chaos.failPercent) {
-        reply.code(503).send({ title: 'Service Unavailable', status: 503, detail: 'chaos failure injected' });
+        reply
+          .code(503)
+          .send({ title: 'Service Unavailable', status: 503, detail: 'chaos failure injected' });
         return;
       }
     }
 
-    const path: string = req.url || '';
-    if (path.startsWith('/docs') || path.startsWith('/metrics') || path.startsWith('/healthz') || path.startsWith('/readyz') || path.startsWith('/openapi')) {
+    const path: string = (req.url || '').split('?')[0];
+    const bypassPaths = ['/docs', '/metrics', '/healthz', '/readyz', '/openapi', '/v1/docs', '/v1/metrics', '/v1/healthz', '/v1/readyz', '/v1/openapi'];
+    if (bypassPaths.some((p) => path === p || path.startsWith(p + '/'))) {
       return;
     }
     const method = (req.method || 'GET').toUpperCase();
@@ -64,6 +67,7 @@ async function bootstrap() {
         .header('X-RateLimit-Remaining', String(allowed.remaining))
         .header('Retry-After', String(allowed.retryAfterSeconds))
         .send({ title: 'Too Many Requests', status: 429, detail: 'rate limit exceeded' });
+      return;
     }
   });
 
