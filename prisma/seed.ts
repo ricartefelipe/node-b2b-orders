@@ -17,7 +17,14 @@ async function main() {
     await prisma.role.upsert({ where: { name }, update: {}, create: { name } });
   }
 
-  const perms = ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'admin:write', 'profile:read'];
+  const perms = [
+    'orders:write',
+    'orders:read',
+    'inventory:read',
+    'inventory:write',
+    'admin:write',
+    'profile:read',
+  ];
   for (const code of perms) {
     await prisma.permission.upsert({ where: { code }, update: {}, create: { code } });
   }
@@ -39,19 +46,48 @@ async function main() {
   }
 
   const policies = [
-    { permissionCode: 'orders:write', allowedPlans: ['pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
-    { permissionCode: 'orders:read', allowedPlans: ['free', 'pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
-    { permissionCode: 'inventory:read', allowedPlans: ['free', 'pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
-    { permissionCode: 'inventory:write', allowedPlans: ['pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
-    { permissionCode: 'admin:write', allowedPlans: ['enterprise'], allowedRegions: ['region-a', 'region-b'] },
-    { permissionCode: 'profile:read', allowedPlans: ['free', 'pro', 'enterprise'], allowedRegions: ['region-a', 'region-b'] },
+    {
+      permissionCode: 'orders:write',
+      allowedPlans: ['pro', 'enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
+    {
+      permissionCode: 'orders:read',
+      allowedPlans: ['free', 'pro', 'enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
+    {
+      permissionCode: 'inventory:read',
+      allowedPlans: ['free', 'pro', 'enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
+    {
+      permissionCode: 'inventory:write',
+      allowedPlans: ['pro', 'enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
+    {
+      permissionCode: 'admin:write',
+      allowedPlans: ['enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
+    {
+      permissionCode: 'profile:read',
+      allowedPlans: ['free', 'pro', 'enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
   ];
 
   for (const p of policies) {
     await prisma.policy.upsert({
       where: { permissionCode: p.permissionCode },
       update: { effect: 'allow', allowedPlans: p.allowedPlans, allowedRegions: p.allowedRegions },
-      create: { permissionCode: p.permissionCode, effect: 'allow', allowedPlans: p.allowedPlans, allowedRegions: p.allowedRegions },
+      create: {
+        permissionCode: p.permissionCode,
+        effect: 'allow',
+        allowedPlans: p.allowedPlans,
+        allowedRegions: p.allowedRegions,
+      },
     });
   }
 
