@@ -30,12 +30,21 @@ export class InventoryController {
   async createAdjustment(
     @Req() req: any,
     @Headers('idempotency-key') idem: string,
-    @Body() body: CreateAdjustmentDto,
+    @Body() body: CreateAdjustmentDto
   ) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';
-    return this.inventory.createAdjustment(tenantId, correlationId, actorSub, idem, body.sku, body.type, body.qty, body.reason);
+    return this.inventory.createAdjustment(
+      tenantId,
+      correlationId,
+      actorSub,
+      idem,
+      body.sku,
+      body.type,
+      body.qty,
+      body.reason
+    );
   }
 
   @Get('adjustments')

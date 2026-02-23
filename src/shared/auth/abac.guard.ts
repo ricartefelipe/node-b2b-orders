@@ -5,7 +5,10 @@ import { PERMISSION_KEY } from './permissions.decorator';
 
 @Injectable()
 export class AbacGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService, private readonly reflector: Reflector) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reflector: Reflector
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const required = this.reflector.getAllAndOverride<string>(PERMISSION_KEY, [
