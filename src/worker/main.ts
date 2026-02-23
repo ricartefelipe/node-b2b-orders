@@ -76,8 +76,15 @@ async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: 
       });
       if (claimed.count === 0) continue;
 
-      const payload = { ...(ev.payload as AnyJson), tenantId: ev.tenantId, correlationId: (ev.payload as AnyJson)?.correlationId || '' };
-      const headers = { 'X-Correlation-Id': payload.correlationId || '', 'X-Tenant-Id': ev.tenantId };
+      const payload = {
+        ...(ev.payload as AnyJson),
+        tenantId: ev.tenantId,
+        correlationId: (ev.payload as AnyJson)?.correlationId || '',
+      };
+      const headers = {
+        'X-Correlation-Id': payload.correlationId || '',
+        'X-Tenant-Id': ev.tenantId,
+      };
 
       const targetExchange = ev.eventType.startsWith('payment.') ? PAYMENTS_EXCHANGE : EXCHANGE;
 
@@ -88,15 +95,28 @@ async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: 
           headers,
           timestamp: Math.floor(Date.now() / 1000),
         });
-        await prisma.outboxEvent.update({ where: { id: ev.id }, data: { status: 'SENT', lockedAt: null, lockedBy: null } });
-        log('outbox.dispatched', { eventType: ev.eventType, aggregateId: ev.aggregateId, tenantId: ev.tenantId });
+        await prisma.outboxEvent.update({
+          where: { id: ev.id },
+          data: { status: 'SENT', lockedAt: null, lockedBy: null },
+        });
+        log('outbox.dispatched', {
+          eventType: ev.eventType,
+          aggregateId: ev.aggregateId,
+          tenantId: ev.tenantId,
+        });
       } catch (e) {
         const attempts = ev.attempts + 1;
         const backoffSeconds = Math.min(60, 2 ** Math.min(6, attempts));
         const availableAt = new Date(Date.now() + backoffSeconds * 1000);
         await prisma.outboxEvent.update({
           where: { id: ev.id },
-          data: { attempts, lockedAt: null, lockedBy: null, availableAt, status: attempts >= 7 ? 'DEAD' : 'PENDING' },
+          data: {
+            attempts,
+            lockedAt: null,
+            lockedBy: null,
+            availableAt,
+            status: attempts >= 7 ? 'DEAD' : 'PENDING',
+          },
         });
         log('outbox.dispatch_failed', { eventType: ev.eventType, attempts, error: String(e) });
       }
@@ -112,16 +132,27 @@ async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body
   const correlationId = body.correlationId || '';
 
   if (routingKey === 'order.created') {
-    const order = await prisma.order.findFirst({ where: { id: orderId, tenantId }, include: { items: true } });
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      include: { items: true },
+    });
     if (!order) return;
 
     await prisma.$transaction(async (tx) => {
       for (const item of order.items) {
-        const inv = await tx.inventoryItem.findUnique({ where: { tenantId_sku: { tenantId, sku: item.sku } } });
+        const inv = await tx.inventoryItem.findUnique({
+          where: { tenantId_sku: { tenantId, sku: item.sku } },
+        });
         if (!inv || inv.availableQty < item.qty) {
           await tx.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' } });
           await tx.outboxEvent.create({
-            data: { tenantId, eventType: 'order.cancelled', aggregateType: 'Order', aggregateId: orderId, payload: { orderId, tenantId, correlationId } },
+            data: {
+              tenantId,
+              eventType: 'order.cancelled',
+              aggregateType: 'Order',
+              aggregateId: orderId,
+              payload: { orderId, tenantId, correlationId },
+            },
           });
           log('order.cancelled_insufficient_stock', { orderId, tenantId, correlationId });
           return;
@@ -137,7 +168,13 @@ async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body
 
       await tx.order.update({ where: { id: orderId }, data: { status: 'RESERVED' } });
       await tx.outboxEvent.create({
-        data: { tenantId, eventType: 'stock.reserved', aggregateType: 'Order', aggregateId: orderId, payload: { orderId, tenantId, correlationId } },
+        data: {
+          tenantId,
+          eventType: 'stock.reserved',
+          aggregateType: 'Order',
+          aggregateId: orderId,
+          payload: { orderId, tenantId, correlationId },
+        },
       });
     });
 
@@ -147,7 +184,10 @@ async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body
   }
 
   if (routingKey === 'order.cancelled') {
-    const order = await prisma.order.findFirst({ where: { id: orderId, tenantId }, include: { items: true } });
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      include: { items: true },
+    });
     if (!order) return;
 
     await prisma.$transaction(async (tx) => {
@@ -167,7 +207,10 @@ async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body
   }
 
   if (routingKey === 'order.confirmed') {
-    const order = await prisma.order.findFirst({ where: { id: orderId, tenantId }, include: { items: true } });
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      include: { items: true },
+    });
     if (!order) return;
 
     await prisma.$transaction(async (tx) => {
@@ -181,7 +224,9 @@ async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body
       }
       await tx.order.update({ where: { id: orderId }, data: { status: 'CONFIRMED' } });
 
-      const totalAmount = body.totalAmount || order.items.reduce((s: number, i: any) => s + Number(i.price) * i.qty, 0);
+      const totalAmount =
+        body.totalAmount ||
+        order.items.reduce((s: number, i: any) => s + Number(i.price) * i.qty, 0);
       await tx.outboxEvent.create({
         data: {
           tenantId,
@@ -193,7 +238,11 @@ async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body
             tenantId,
             correlationId,
             customerId: body.customerId || order.customerId,
-            items: (body.items || order.items).map((i: any) => ({ sku: i.sku, qty: i.qty, price: Number(i.price) })),
+            items: (body.items || order.items).map((i: any) => ({
+              sku: i.sku,
+              qty: i.qty,
+              price: Number(i.price),
+            })),
             totalAmount,
             currency: body.currency || 'BRL',
           },
@@ -227,7 +276,11 @@ async function handlePaymentMessage(prisma: PrismaClient, routingKey: string, bo
     }
 
     await prisma.order.update({ where: { id: orderId }, data: { status: 'PAID' } });
-    log('order.paid', { orderId, tenantId, correlationId: body.correlationId || body.correlation_id || '' });
+    log('order.paid', {
+      orderId,
+      tenantId,
+      correlationId: body.correlationId || body.correlation_id || '',
+    });
   }
 }
 
@@ -248,7 +301,9 @@ async function main() {
   await ensurePaymentsTopology(chDispatch);
   await ensurePaymentsTopology(chPayments);
 
-  dispatchOutbox(prisma, chDispatch, workerId).catch((e) => log('dispatchOutbox.fatal', { error: String(e) }));
+  dispatchOutbox(prisma, chDispatch, workerId).catch((e) =>
+    log('dispatchOutbox.fatal', { error: String(e) })
+  );
 
   await chConsume.prefetch(10);
   await chConsume.consume(
@@ -265,7 +320,7 @@ async function main() {
         chConsume.reject(msg, false);
       }
     },
-    { noAck: false },
+    { noAck: false }
   );
 
   await chPayments.prefetch(10);
@@ -283,7 +338,7 @@ async function main() {
         chPayments.reject(msg, false);
       }
     },
-    { noAck: false },
+    { noAck: false }
   );
 
   log('worker.started', { workerId });
