@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 
-export type RateLimitDecision = { allowed: boolean; remaining: number; retryAfterSeconds: number; limit: number };
+export type RateLimitDecision = {
+  allowed: boolean;
+  remaining: number;
+  retryAfterSeconds: number;
+  limit: number;
+};
 export type ChaosConfig = { enabled: boolean; failPercent: number; latencyMs: number };
 
 const LUA_TOKEN_BUCKET = `
@@ -41,7 +46,9 @@ export class RedisService {
   private tokenBucketSha: string | null = null;
 
   constructor() {
-    this.client = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', { lazyConnect: true });
+    this.client = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+      lazyConnect: true,
+    });
   }
 
   get raw() {
@@ -54,7 +61,9 @@ export class RedisService {
     const parts = token.split('.');
     if (parts.length < 2) return null;
     try {
-      const payload = JSON.parse(Buffer.from(base64UrlToBase64(parts[1]), 'base64').toString('utf8'));
+      const payload = JSON.parse(
+        Buffer.from(base64UrlToBase64(parts[1]), 'base64').toString('utf8')
+      );
       return payload.sub || null;
     } catch {
       return null;
@@ -65,7 +74,11 @@ export class RedisService {
     return RedisService.tryDecodeSubFromAuthHeader(auth);
   }
 
-  async consumeRateLimit(tenantId: string, sub: string, group: 'read' | 'write'): Promise<RateLimitDecision> {
+  async consumeRateLimit(
+    tenantId: string,
+    sub: string,
+    group: 'read' | 'write'
+  ): Promise<RateLimitDecision> {
     const writeLimit = Number(process.env.RATE_LIMIT_WRITE_PER_MIN || 60);
     const readLimit = Number(process.env.RATE_LIMIT_READ_PER_MIN || 240);
     const limit = group === 'write' ? writeLimit : readLimit;
@@ -74,8 +87,17 @@ export class RedisService {
     const now = Date.now() / 1000.0;
     const key = `ratelimit:${tenantId}:${sub}:${group}`;
 
-    if (!this.tokenBucketSha) this.tokenBucketSha = (await this.client.script('LOAD', LUA_TOKEN_BUCKET)) as string;
-    const res: any = await this.client.evalsha(this.tokenBucketSha as string, 1, key, capacity, refillRate, now, 1);
+    if (!this.tokenBucketSha)
+      this.tokenBucketSha = (await this.client.script('LOAD', LUA_TOKEN_BUCKET)) as string;
+    const res: any = await this.client.evalsha(
+      this.tokenBucketSha as string,
+      1,
+      key,
+      capacity,
+      refillRate,
+      now,
+      1
+    );
     const allowed = Number(res[0]) === 1;
     const tokens = Math.floor(Number(res[1]));
     const ttl = Number(res[2]);

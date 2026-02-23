@@ -5,7 +5,10 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService, private readonly jwt: JwtService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService
+  ) {}
 
   async issueToken(email: string, password: string, tenantId?: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });

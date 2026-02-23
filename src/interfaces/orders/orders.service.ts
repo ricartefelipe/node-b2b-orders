@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../../shared/audit/audit.service';
@@ -10,10 +15,16 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly audit: AuditService,
-    private readonly metrics: BusinessMetricsService,
+    private readonly metrics: BusinessMetricsService
   ) {}
 
-  async createOrder(tenantId: string, correlationId: string, idempotencyKey: string, customerId: string, items: { sku: string; qty: number; price: number }[]) {
+  async createOrder(
+    tenantId: string,
+    correlationId: string,
+    idempotencyKey: string,
+    customerId: string,
+    items: { sku: string; qty: number; price: number }[]
+  ) {
     if (!idempotencyKey) throw new BadRequestException('Missing Idempotency-Key');
     const idemKey = `idem:${tenantId}:create-order:${idempotencyKey}`;
     const hit = await this.redis.idemGet(idemKey);
@@ -47,25 +58,44 @@ export class OrdersService {
 
     this.metrics.ordersCreated.inc({ tenant_id: tenantId });
 
-    const response = { id: order.id, status: order.status, customerId: order.customerId, items: order.items };
+    const response = {
+      id: order.id,
+      status: order.status,
+      customerId: order.customerId,
+      items: order.items,
+    };
     await this.redis.idemSet(idemKey, response, 24 * 3600);
     return response;
   }
 
-  async confirmOrder(tenantId: string, correlationId: string, idempotencyKey: string, orderId: string, actorSub?: string) {
+  async confirmOrder(
+    tenantId: string,
+    correlationId: string,
+    idempotencyKey: string,
+    orderId: string,
+    actorSub?: string
+  ) {
     if (!idempotencyKey) throw new BadRequestException('Missing Idempotency-Key');
     const idemKey = `idem:${tenantId}:confirm-order:${orderId}:${idempotencyKey}`;
     const hit = await this.redis.idemGet(idemKey);
     if (hit) return hit;
 
-    const order = await this.prisma.order.findFirst({ where: { id: orderId, tenantId }, include: { items: true } });
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      include: { items: true },
+    });
     if (!order) throw new NotFoundException('order not found');
-    if (order.status !== 'RESERVED') throw new ConflictException(`cannot confirm status ${order.status}`);
+    if (order.status !== 'RESERVED')
+      throw new ConflictException(`cannot confirm status ${order.status}`);
 
     const totalAmount = order.items.reduce((sum, item) => sum + Number(item.price) * item.qty, 0);
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const o = await tx.order.update({ where: { id: orderId }, data: { status: 'CONFIRMED' }, include: { items: true } });
+      const o = await tx.order.update({
+        where: { id: orderId },
+        data: { status: 'CONFIRMED' },
+        include: { items: true },
+      });
 
       await tx.outboxEvent.create({
         data: {
@@ -105,13 +135,26 @@ export class OrdersService {
   }
 
   async cancelOrder(tenantId: string, correlationId: string, orderId: string, actorSub?: string) {
-    const order = await this.prisma.order.findFirst({ where: { id: orderId, tenantId }, include: { items: true } });
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      include: { items: true },
+    });
     if (!order) throw new NotFoundException('order not found');
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const o = await tx.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' }, include: { items: true } });
+      const o = await tx.order.update({
+        where: { id: orderId },
+        data: { status: 'CANCELLED' },
+        include: { items: true },
+      });
       await tx.outboxEvent.create({
-        data: { tenantId, eventType: 'order.cancelled', aggregateType: 'Order', aggregateId: orderId, payload: { orderId, tenantId, correlationId } },
+        data: {
+          tenantId,
+          eventType: 'order.cancelled',
+          aggregateType: 'Order',
+          aggregateId: orderId,
+          payload: { orderId, tenantId, correlationId },
+        },
       });
       return o;
     });
@@ -131,12 +174,19 @@ export class OrdersService {
   }
 
   async getOrder(tenantId: string, orderId: string) {
-    const order = await this.prisma.order.findFirst({ where: { id: orderId, tenantId }, include: { items: true } });
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      include: { items: true },
+    });
     if (!order) throw new NotFoundException('order not found');
     return order;
   }
 
   async listOrders(tenantId: string, status?: string) {
-    return this.prisma.order.findMany({ where: { tenantId, ...(status ? { status } : {}) }, orderBy: { createdAt: 'desc' }, take: 100 });
+    return this.prisma.order.findMany({
+      where: { tenantId, ...(status ? { status } : {}) },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
   }
 }

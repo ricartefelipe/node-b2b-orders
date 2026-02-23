@@ -7,7 +7,10 @@ import { RedisService } from '../../infrastructure/redis/redis.service';
 @ApiTags('metrics')
 @Controller()
 export class MetricsController {
-  constructor(private readonly prisma: PrismaService, private readonly redis: RedisService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService
+  ) {}
 
   @Get('metrics')
   async metrics(@Res() res: any) {
