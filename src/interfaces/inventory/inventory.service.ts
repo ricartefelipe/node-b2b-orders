@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../../shared/audit/audit.service';
@@ -11,7 +16,7 @@ export class InventoryService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly audit: AuditService,
-    private readonly metrics: BusinessMetricsService,
+    private readonly metrics: BusinessMetricsService
   ) {}
 
   async list(tenantId: string, sku?: string) {
@@ -30,7 +35,7 @@ export class InventoryService {
     sku: string,
     type: AdjustmentType,
     qty: number,
-    reason: string,
+    reason: string
   ) {
     if (idempotencyKey) {
       const idemKey = `idem:${tenantId}:inv-adj:${idempotencyKey}`;
@@ -59,7 +64,9 @@ export class InventoryService {
           break;
         case AdjustmentType.OUT:
           if (inv.availableQty < qty) {
-            throw new ConflictException(`Insufficient available qty (${inv.availableQty}) for OUT of ${qty}`);
+            throw new ConflictException(
+              `Insufficient available qty (${inv.availableQty}) for OUT of ${qty}`
+            );
           }
           newAvailable -= qty;
           break;
