@@ -20,7 +20,11 @@ export class OrdersController {
 
   @Post()
   @Permission('orders:write')
-  async create(@Req() req: any, @Headers('idempotency-key') idem: string, @Body() body: CreateOrderRequestDto) {
+  async create(
+    @Req() req: any,
+    @Headers('idempotency-key') idem: string,
+    @Body() body: CreateOrderRequestDto
+  ) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
     return this.orders.createOrder(tenantId, correlationId, idem, body.customerId, body.items);
@@ -28,7 +32,11 @@ export class OrdersController {
 
   @Post(':id/confirm')
   @Permission('orders:write')
-  async confirm(@Req() req: any, @Headers('idempotency-key') idem: string, @Param('id') id: string) {
+  async confirm(
+    @Req() req: any,
+    @Headers('idempotency-key') idem: string,
+    @Param('id') id: string
+  ) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';

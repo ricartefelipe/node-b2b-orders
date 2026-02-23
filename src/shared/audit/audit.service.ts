@@ -31,7 +31,10 @@ export class AuditService {
     }
   }
 
-  async query(tenantId: string, opts: { action?: string; target?: string; limit?: number; offset?: number }) {
+  async query(
+    tenantId: string,
+    opts: { action?: string; target?: string; limit?: number; offset?: number }
+  ) {
     const where: Record<string, unknown> = { tenantId };
     if (opts.action) where.action = opts.action;
     if (opts.target) where.target = opts.target;
