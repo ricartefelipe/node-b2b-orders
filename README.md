@@ -190,6 +190,18 @@ inventory_adjusted_total{tenant_id="tenant_demo",type="IN"}
 | PAYMENTS_INBOUND_QUEUE | orders.payments       | Fila de eventos de pagamento |
 | CHAOS_ENABLED        | false                   | Habilitar chaos engineering  |
 
+### E2E com Fluxe B2B Suite
+
+Para integração ponta a ponta com o frontend (fluxe-b2b-suite) e os backends spring-saas-core e py-payments-ledger, o login é feito no Core; esta API apenas **valida** o JWT. Use o mesmo secret e issuer do Spring:
+
+```bash
+# Exemplo (valores devem coincidir com spring-saas-core em profile local)
+JWT_SECRET=local-dev-secret-min-32-chars-for-hs256-signing
+JWT_ISSUER=spring-saas-core
+```
+
+O frontend obtém o token em `POST {coreApiBaseUrl}/v1/dev/token` e envia em todas as chamadas. Use o mesmo `RABBITMQ_URL` que o py-payments-ledger para o fluxo ordem → pagamento.
+
 ## Rodar localmente (sem Docker para API/Worker)
 
 ```bash
