@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { CursorPageQuery } from '../../shared/pagination/cursor';
 
 import { CreateOrderRequestDto } from './dto';
 import { OrdersService } from './orders.service';
@@ -61,8 +62,8 @@ export class OrdersController {
 
   @Get()
   @Permission('orders:read')
-  async list(@Req() req: any, @Query('status') status?: string) {
+  async list(@Req() req: any, @Query() page: CursorPageQuery, @Query('status') status?: string) {
     const tenantId = req.headers['x-tenant-id'];
-    return this.orders.listOrders(tenantId, status);
+    return this.orders.listOrders(tenantId, status, page.cursor, page.limit);
   }
 }

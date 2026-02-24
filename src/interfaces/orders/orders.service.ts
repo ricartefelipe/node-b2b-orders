@@ -8,6 +8,12 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { BusinessMetricsService } from '../../shared/metrics/business-metrics.service';
+import {
+  PaginatedResponse,
+  decodeCursor,
+  encodeCursor,
+  resolveLimit,
+} from '../../shared/pagination/cursor';
 
 @Injectable()
 export class OrdersService {
@@ -182,11 +188,37 @@ export class OrdersService {
     return order;
   }
 
-  async listOrders(tenantId: string, status?: string) {
-    return this.prisma.order.findMany({
-      where: { tenantId, ...(status ? { status } : {}) },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+  async listOrders(
+    tenantId: string,
+    status?: string,
+    cursor?: string,
+    rawLimit?: number,
+  ): Promise<PaginatedResponse<any>> {
+    const limit = resolveLimit(rawLimit);
+    const where: Record<string, unknown> = { tenantId };
+    if (status) where.status = status;
+
+    const findArgs: Record<string, unknown> = {
+      where,
+      orderBy: { createdAt: 'desc' as const },
+      take: limit + 1,
+      include: { items: true },
+    };
+
+    if (cursor) {
+      const decoded = decodeCursor(cursor);
+      if (decoded) {
+        findArgs.cursor = { id: decoded.id };
+        findArgs.skip = 1;
+      }
+    }
+
+    const rows = await this.prisma.order.findMany(findArgs as any);
+    const hasMore = rows.length > limit;
+    const data = hasMore ? rows.slice(0, limit) : rows;
+    const last = data[data.length - 1];
+    const nextCursor = hasMore && last ? encodeCursor(last.id, last.createdAt) : null;
+
+    return { data, nextCursor, hasMore };
   }
 }
