@@ -8,6 +8,12 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { BusinessMetricsService } from '../../shared/metrics/business-metrics.service';
+import {
+  PaginatedResponse,
+  decodeCursor,
+  encodeCursor,
+  resolveLimit,
+} from '../../shared/pagination/cursor';
 import { AdjustmentType } from './dto';
 
 @Injectable()
@@ -19,12 +25,39 @@ export class InventoryService {
     private readonly metrics: BusinessMetricsService
   ) {}
 
-  async list(tenantId: string, sku?: string) {
-    return this.prisma.inventoryItem.findMany({
-      where: { tenantId, ...(sku ? { sku } : {}) },
-      orderBy: { sku: 'asc' },
-      take: 200,
-    });
+  async list(
+    tenantId: string,
+    sku?: string,
+    cursor?: string,
+    rawLimit?: number,
+  ): Promise<PaginatedResponse<any>> {
+    const limit = resolveLimit(rawLimit);
+    const where: Record<string, unknown> = { tenantId };
+    if (sku) where.sku = sku;
+
+    const findArgs: Record<string, unknown> = {
+      where,
+      orderBy: { sku: 'asc' as const },
+      take: limit + 1,
+    };
+
+    if (cursor) {
+      const decoded = decodeCursor(cursor);
+      if (decoded) {
+        findArgs.cursor = { id: decoded.id };
+        findArgs.skip = 1;
+      }
+    }
+
+    const rows = await this.prisma.inventoryItem.findMany(findArgs as any);
+    const hasMore = rows.length > limit;
+    const data = hasMore ? rows.slice(0, limit) : rows;
+    const last = data[data.length - 1];
+    const nextCursor = hasMore && last
+      ? encodeCursor(last.id, new Date())
+      : null;
+
+    return { data, nextCursor, hasMore };
   }
 
   async createAdjustment(
@@ -119,15 +152,36 @@ export class InventoryService {
     return result;
   }
 
-  async listAdjustments(tenantId: string, sku?: string, limit?: number, offset?: number) {
+  async listAdjustments(
+    tenantId: string,
+    sku?: string,
+    cursor?: string,
+    rawLimit?: number,
+  ): Promise<PaginatedResponse<any>> {
+    const limit = resolveLimit(rawLimit);
     const where: Record<string, unknown> = { tenantId };
     if (sku) where.sku = sku;
 
-    return this.prisma.inventoryAdjustment.findMany({
+    const findArgs: Record<string, unknown> = {
       where,
-      orderBy: { createdAt: 'desc' },
-      take: limit || 50,
-      skip: offset || 0,
-    });
+      orderBy: { createdAt: 'desc' as const },
+      take: limit + 1,
+    };
+
+    if (cursor) {
+      const decoded = decodeCursor(cursor);
+      if (decoded) {
+        findArgs.cursor = { id: decoded.id };
+        findArgs.skip = 1;
+      }
+    }
+
+    const rows = await this.prisma.inventoryAdjustment.findMany(findArgs as any);
+    const hasMore = rows.length > limit;
+    const data = hasMore ? rows.slice(0, limit) : rows;
+    const last = data[data.length - 1];
+    const nextCursor = hasMore && last ? encodeCursor(last.id, last.createdAt) : null;
+
+    return { data, nextCursor, hasMore };
   }
 }
