@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
+import { CircuitBreakerModule } from './infrastructure/circuit-breaker/circuit-breaker.module';
 import { BusinessMetricsModule } from './shared/metrics/business-metrics.module';
 import { AuditModule } from './shared/audit/audit.module';
 import { AuthModule } from './interfaces/auth/auth.module';
@@ -16,6 +17,7 @@ import { MetricsModule } from './interfaces/metrics/metrics.module';
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     RedisModule,
+    CircuitBreakerModule,
     BusinessMetricsModule,
     AuditModule,
     AuthModule,
