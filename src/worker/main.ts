@@ -2,6 +2,9 @@ import * as amqp from 'amqplib';
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { Counter } from 'prom-client';
+import CircuitBreaker from 'opossum';
+
+import { createCircuitBreaker } from '../infrastructure/circuit-breaker/circuit-breaker.factory';
 
 const EXCHANGE = process.env.ORDERS_EXCHANGE || 'orders.x';
 const QUEUE = process.env.ORDERS_QUEUE || 'orders.events';
@@ -54,8 +57,35 @@ async function ensurePaymentsTopology(ch: amqp.Channel) {
   await ch.bindQueue(PAYMENTS_QUEUE, PAYMENTS_EXCHANGE, 'payment.settled');
 }
 
+function buildPublishBreaker(ch: amqp.Channel): CircuitBreaker<[string, string, Buffer, amqp.Options.Publish], boolean> {
+  return createCircuitBreaker(
+    'rabbitmq-publish',
+    async (exchange: string, routingKey: string, content: Buffer, options: amqp.Options.Publish) => {
+      return ch.publish(exchange, routingKey, content, options);
+    },
+    {
+      timeout: 5_000,
+      errorThresholdPercentage: 50,
+      resetTimeout: 30_000,
+      volumeThreshold: 5,
+    },
+  );
+}
+
 async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: string) {
+  const publishBreaker = buildPublishBreaker(ch);
+
+  publishBreaker.on('open', () => log('circuit.open', { breaker: 'rabbitmq-publish' }));
+  publishBreaker.on('halfOpen', () => log('circuit.halfOpen', { breaker: 'rabbitmq-publish' }));
+  publishBreaker.on('close', () => log('circuit.closed', { breaker: 'rabbitmq-publish' }));
+
   while (true) {
+    if (publishBreaker.opened) {
+      log('outbox.skipped_circuit_open');
+      await sleep(5_000);
+      continue;
+    }
+
     const now = new Date();
     const stale = new Date(Date.now() - 60_000);
 
@@ -89,12 +119,17 @@ async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: 
       const targetExchange = ev.eventType.startsWith('payment.') ? PAYMENTS_EXCHANGE : EXCHANGE;
 
       try {
-        ch.publish(targetExchange, ev.eventType, Buffer.from(JSON.stringify(payload)), {
-          contentType: 'application/json',
-          persistent: true,
-          headers,
-          timestamp: Math.floor(Date.now() / 1000),
-        });
+        await publishBreaker.fire(
+          targetExchange,
+          ev.eventType,
+          Buffer.from(JSON.stringify(payload)),
+          {
+            contentType: 'application/json',
+            persistent: true,
+            headers,
+            timestamp: Math.floor(Date.now() / 1000),
+          },
+        );
         await prisma.outboxEvent.update({
           where: { id: ev.id },
           data: { status: 'SENT', lockedAt: null, lockedBy: null },
@@ -122,7 +157,7 @@ async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: 
       }
     }
 
-    await sleep(1000);
+    await sleep(1_000);
   }
 }
 
