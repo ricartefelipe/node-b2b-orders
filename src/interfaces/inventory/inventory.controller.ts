@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { CursorPageQuery } from '../../shared/pagination/cursor';
 
 import { CreateAdjustmentDto, ListAdjustmentsQueryDto } from './dto';
 import { InventoryService } from './inventory.service';
@@ -20,9 +21,9 @@ export class InventoryController {
 
   @Get()
   @Permission('inventory:read')
-  async list(@Req() req: any, @Query('sku') sku?: string) {
+  async list(@Req() req: any, @Query() page: CursorPageQuery, @Query('sku') sku?: string) {
     const tenantId = req.headers['x-tenant-id'];
-    return this.inventory.list(tenantId, sku);
+    return this.inventory.list(tenantId, sku, page.cursor, page.limit);
   }
 
   @Post('adjustments')
@@ -51,6 +52,6 @@ export class InventoryController {
   @Permission('inventory:read')
   async listAdjustments(@Req() req: any, @Query() query: ListAdjustmentsQueryDto) {
     const tenantId = req.headers['x-tenant-id'];
-    return this.inventory.listAdjustments(tenantId, query.sku, query.limit, query.offset);
+    return this.inventory.listAdjustments(tenantId, query.sku, query.cursor, query.limit);
   }
 }
