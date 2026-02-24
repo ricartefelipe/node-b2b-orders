@@ -15,7 +15,7 @@ FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
-RUN addgroup -g 1000 app && adduser -u 1000 -G app -D app
+RUN addgroup -g 2000 app && adduser -u 2000 -G app -D app
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
