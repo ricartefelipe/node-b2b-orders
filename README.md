@@ -182,7 +182,7 @@ Contratos detalhados em [docs/contracts/events.md](docs/contracts/events.md).
 - **Opcionais:** `X-Correlation-Id` (gerado se ausente).
 - **Idempotency-Key:** Obrigatório em `POST /v1/orders`, `POST /v1/orders/:id/confirm`, `POST /v1/inventory/adjustments`.
 
-Documentação: [docs/contracts/identity.md](docs/contracts/identity.md), [docs/contracts/headers.md](docs/contracts/headers.md).
+Documentação: [docs/contracts/identity.md](docs/contracts/identity.md), [docs/contracts/headers.md](docs/contracts/headers.md). [Prompt de evolução](docs/PROMPT-EVOLUCAO.md): objetivo entregável/vendável e IA/LLM. [Prompt de conclusão e vistoria](docs/PROMPT-CONCLUSAO-VISTORIA.md): critérios de qualidade, etapas finais e prontidão IA/LLM.
 
 ---
 
