@@ -1,9 +1,10 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import type { AppFastifyRequest } from '../types/request.types';
 
 @Injectable()
 export class TenantGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const req: any = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<AppFastifyRequest>();
     const tenantId = req.headers['x-tenant-id'];
     if (!tenantId) throw new ForbiddenException('Missing X-Tenant-Id');
 

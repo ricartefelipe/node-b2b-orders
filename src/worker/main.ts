@@ -1,4 +1,5 @@
 import * as amqp from 'amqplib';
+import type { ConsumeMessage } from 'amqplib';
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { Counter } from 'prom-client';
@@ -14,7 +15,8 @@ const PAYMENTS_EXCHANGE = process.env.PAYMENTS_EXCHANGE || 'payments.x';
 const PAYMENTS_QUEUE = process.env.PAYMENTS_INBOUND_QUEUE || 'orders.payments';
 const PAYMENTS_DLQ = process.env.PAYMENTS_DLQ || 'orders.payments.dlq';
 
-type AnyJson = any;
+type OrderItemPayload = { price: string | number; qty: number; sku: string };
+type AnyJson = Record<string, unknown>;
 
 const inventoryReserved = new Counter({
   name: 'inventory_reserved_total',
@@ -28,7 +30,7 @@ function sleep(ms: number) {
 
 function log(msg: string, extra?: Record<string, unknown>) {
   const entry: Record<string, unknown> = { ts: new Date().toISOString(), msg, ...extra };
-  console.log(JSON.stringify(entry));
+  process.stdout.write(JSON.stringify(entry) + '\n');
 }
 
 async function ensureOrdersTopology(ch: amqp.Channel) {
@@ -261,7 +263,7 @@ async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body
 
       const totalAmount =
         body.totalAmount ||
-        order.items.reduce((s: number, i: any) => s + Number(i.price) * i.qty, 0);
+        order.items.reduce((s: number, i: OrderItemPayload) => s + Number(i.price) * i.qty, 0);
       await tx.outboxEvent.create({
         data: {
           tenantId,
@@ -273,7 +275,7 @@ async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body
             tenantId,
             correlationId,
             customerId: body.customerId || order.customerId,
-            items: (body.items || order.items).map((i: any) => ({
+            items: (body.items || order.items).map((i: OrderItemPayload) => ({
               sku: i.sku,
               qty: i.qty,
               price: Number(i.price),
@@ -343,7 +345,7 @@ async function main() {
   await chConsume.prefetch(10);
   await chConsume.consume(
     QUEUE,
-    async (msg: any) => {
+    async (msg: ConsumeMessage | null) => {
       if (!msg) return;
       const routingKey = msg.fields.routingKey;
       try {
@@ -361,7 +363,7 @@ async function main() {
   await chPayments.prefetch(10);
   await chPayments.consume(
     PAYMENTS_QUEUE,
-    async (msg: any) => {
+    async (msg: ConsumeMessage | null) => {
       if (!msg) return;
       const routingKey = msg.fields.routingKey;
       try {
@@ -379,7 +381,7 @@ async function main() {
   log('worker.started', { workerId });
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch((err: unknown) => {
+  log('worker.fatal', { error: String(err) });
   process.exit(1);
 });

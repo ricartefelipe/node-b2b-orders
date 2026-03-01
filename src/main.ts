@@ -5,6 +5,8 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { collectDefaultMetrics } from 'prom-client';
 import { v4 as uuidv4 } from 'uuid';
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import { AppFastifyRequest } from '../shared/types/request.types';
 
 import { AppModule } from './app.module';
 import { RedisService } from './infrastructure/redis/redis.service';
@@ -30,15 +32,16 @@ async function bootstrap() {
   const redis = app.get(RedisService);
   const fastify = app.getHttpAdapter().getInstance();
 
-  fastify.addHook('onRequest', async (req: any, reply: any) => {
+  fastify.addHook('onRequest', async (req: FastifyRequest, reply: FastifyReply) => {
+    const appReq = req as AppFastifyRequest;
     const cid = req.headers['x-correlation-id'] || uuidv4().replace(/-/g, '');
-    req.correlationId = cid;
-    reply.header('x-correlation-id', cid);
+    appReq.correlationId = typeof cid === 'string' ? cid : cid[0] ?? uuidv4().replace(/-/g, '');
+    reply.header('x-correlation-id', appReq.correlationId);
 
     const tenantId = req.headers['x-tenant-id'] || '';
-    req.tenantId = tenantId;
+    appReq.tenantId = typeof tenantId === 'string' ? tenantId : tenantId[0] ?? '';
 
-    const chaos = await redis.getChaosConfig(tenantId || 'public');
+    const chaos = await redis.getChaosConfig(appReq.tenantId || 'public');
     if (chaos.enabled) {
       if (chaos.latencyMs > 0) {
         await new Promise((r) => setTimeout(r, chaos.latencyMs));
@@ -59,7 +62,7 @@ async function bootstrap() {
     const method = (req.method || 'GET').toUpperCase();
     const group = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) ? 'write' : 'read';
     const sub = redis.tryDecodeSubFromAuthHeader(req.headers['authorization']);
-    const allowed = await redis.consumeRateLimit(tenantId || 'public', sub || 'anonymous', group);
+    const allowed = await redis.consumeRateLimit(appReq.tenantId || 'public', sub || 'anonymous', group);
     if (!allowed.allowed) {
       reply
         .code(429)
@@ -75,7 +78,8 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 }
 
-bootstrap().catch((e) => {
-  console.error(e);
+bootstrap().catch((err: unknown) => {
+  const logger = console;
+  logger.error(err);
   process.exit(1);
 });

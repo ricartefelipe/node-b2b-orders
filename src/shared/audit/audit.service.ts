@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
 export interface AuditEntry {
@@ -22,12 +23,13 @@ export class AuditService {
           actorSub: entry.actorSub,
           action: entry.action,
           target: entry.target,
-          detail: entry.detail as any,
+          detail: entry.detail as Prisma.InputJsonValue,
           correlationId: entry.correlationId,
         },
       });
     } catch (err) {
-      console.error('AuditService.log failed', err);
+      const logger = console;
+      logger.error('AuditService.log failed', err);
     }
   }
 

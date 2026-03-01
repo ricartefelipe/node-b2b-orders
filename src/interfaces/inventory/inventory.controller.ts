@@ -7,6 +7,7 @@ import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
 import { CursorPageQuery } from '../../shared/pagination/cursor';
+import type { AppFastifyRequest } from '../../shared/types/request.types';
 
 import { CreateAdjustmentDto, ListAdjustmentsQueryDto } from './dto';
 import { InventoryService } from './inventory.service';
@@ -21,7 +22,7 @@ export class InventoryController {
 
   @Get()
   @Permission('inventory:read')
-  async list(@Req() req: any, @Query() page: CursorPageQuery, @Query('sku') sku?: string) {
+  async list(@Req() req: AppFastifyRequest, @Query() page: CursorPageQuery, @Query('sku') sku?: string) {
     const tenantId = req.headers['x-tenant-id'];
     return this.inventory.list(tenantId, sku, page.cursor, page.limit);
   }
@@ -29,7 +30,7 @@ export class InventoryController {
   @Post('adjustments')
   @Permission('inventory:write')
   async createAdjustment(
-    @Req() req: any,
+    @Req() req: AppFastifyRequest,
     @Headers('idempotency-key') idem: string,
     @Body() body: CreateAdjustmentDto
   ) {
@@ -50,7 +51,7 @@ export class InventoryController {
 
   @Get('adjustments')
   @Permission('inventory:read')
-  async listAdjustments(@Req() req: any, @Query() query: ListAdjustmentsQueryDto) {
+  async listAdjustments(@Req() req: AppFastifyRequest, @Query() query: ListAdjustmentsQueryDto) {
     const tenantId = req.headers['x-tenant-id'];
     return this.inventory.listAdjustments(tenantId, query.sku, query.cursor, query.limit);
   }

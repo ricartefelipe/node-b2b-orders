@@ -7,6 +7,7 @@ import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
 import { CursorPageQuery } from '../../shared/pagination/cursor';
+import type { AppFastifyRequest } from '../../shared/types/request.types';
 
 import { CreateOrderRequestDto } from './dto';
 import { OrdersService } from './orders.service';
@@ -22,7 +23,7 @@ export class OrdersController {
   @Post()
   @Permission('orders:write')
   async create(
-    @Req() req: any,
+    @Req() req: AppFastifyRequest,
     @Headers('idempotency-key') idem: string,
     @Body() body: CreateOrderRequestDto
   ) {
@@ -34,7 +35,7 @@ export class OrdersController {
   @Post(':id/confirm')
   @Permission('orders:write')
   async confirm(
-    @Req() req: any,
+    @Req() req: AppFastifyRequest,
     @Headers('idempotency-key') idem: string,
     @Param('id') id: string
   ) {
@@ -46,7 +47,7 @@ export class OrdersController {
 
   @Post(':id/cancel')
   @Permission('orders:write')
-  async cancel(@Req() req: any, @Param('id') id: string) {
+  async cancel(@Req() req: AppFastifyRequest, @Param('id') id: string) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';
@@ -55,14 +56,14 @@ export class OrdersController {
 
   @Get(':id')
   @Permission('orders:read')
-  async getOne(@Req() req: any, @Param('id') id: string) {
+  async getOne(@Req() req: AppFastifyRequest, @Param('id') id: string) {
     const tenantId = req.headers['x-tenant-id'];
     return this.orders.getOrder(tenantId, id);
   }
 
   @Get()
   @Permission('orders:read')
-  async list(@Req() req: any, @Query() page: CursorPageQuery, @Query('status') status?: string) {
+  async list(@Req() req: AppFastifyRequest, @Query() page: CursorPageQuery, @Query('status') status?: string) {
     const tenantId = req.headers['x-tenant-id'];
     return this.orders.listOrders(tenantId, status, page.cursor, page.limit);
   }

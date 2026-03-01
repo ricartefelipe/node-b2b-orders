@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../../shared/audit/audit.service';
@@ -193,7 +194,7 @@ export class OrdersService {
     status?: string,
     cursor?: string,
     rawLimit?: number,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse<unknown>> {
     const limit = resolveLimit(rawLimit);
     const where: Record<string, unknown> = { tenantId };
     if (status) where.status = status;
@@ -213,7 +214,7 @@ export class OrdersService {
       }
     }
 
-    const rows = await this.prisma.order.findMany(findArgs as any);
+    const rows = await this.prisma.order.findMany(findArgs as Prisma.OrderFindManyArgs);
     const hasMore = rows.length > limit;
     const data = hasMore ? rows.slice(0, limit) : rows;
     const last = data[data.length - 1];

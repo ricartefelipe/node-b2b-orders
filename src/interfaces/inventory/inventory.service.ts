@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../../shared/audit/audit.service';
@@ -30,7 +31,7 @@ export class InventoryService {
     sku?: string,
     cursor?: string,
     rawLimit?: number,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse<{ id: string; sku: string; tenantId: string; availableQty: number; reservedQty: number; createdAt: Date }>> {
     const limit = resolveLimit(rawLimit);
     const where: Record<string, unknown> = { tenantId };
     if (sku) where.sku = sku;
@@ -49,7 +50,7 @@ export class InventoryService {
       }
     }
 
-    const rows = await this.prisma.inventoryItem.findMany(findArgs as any);
+    const rows = await this.prisma.inventoryItem.findMany(findArgs as Prisma.InventoryItemFindManyArgs);
     const hasMore = rows.length > limit;
     const data = hasMore ? rows.slice(0, limit) : rows;
     const last = data[data.length - 1];
@@ -157,7 +158,7 @@ export class InventoryService {
     sku?: string,
     cursor?: string,
     rawLimit?: number,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse<unknown>> {
     const limit = resolveLimit(rawLimit);
     const where: Record<string, unknown> = { tenantId };
     if (sku) where.sku = sku;
@@ -176,7 +177,7 @@ export class InventoryService {
       }
     }
 
-    const rows = await this.prisma.inventoryAdjustment.findMany(findArgs as any);
+    const rows = await this.prisma.inventoryAdjustment.findMany(findArgs as Prisma.InventoryAdjustmentFindManyArgs);
     const hasMore = rows.length > limit;
     const data = hasMore ? rows.slice(0, limit) : rows;
     const last = data[data.length - 1];
