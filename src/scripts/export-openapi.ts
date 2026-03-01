@@ -23,10 +23,10 @@ async function main() {
   fs.writeFileSync('docs/api/openapi.json', JSON.stringify(document, null, 2), 'utf8');
   fs.writeFileSync('docs/api/openapi.yaml', yaml.dump(document, { noRefs: true }), 'utf8');
   await app.close();
-  console.log('Exported docs/api/openapi.{json,yaml}');
+  process.stdout.write('Exported docs/api/openapi.{json,yaml}\n');
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch((err: unknown) => {
+  process.stderr.write(String(err) + '\n');
   process.exit(1);
 });

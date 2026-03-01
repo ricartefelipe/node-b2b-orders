@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { PERMISSION_KEY } from './permissions.decorator';
+import type { AppFastifyRequest } from '../types/request.types';
 
 @Injectable()
 export class AbacGuard implements CanActivate {
@@ -17,7 +18,7 @@ export class AbacGuard implements CanActivate {
     ]);
     if (!required) return true;
 
-    const req: any = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<AppFastifyRequest>();
     const user = req.user;
     if (!user) throw new ForbiddenException('Missing user');
     if (user.tid === '*' && (user.roles || []).includes('admin')) return true;

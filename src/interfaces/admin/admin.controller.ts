@@ -7,6 +7,7 @@ import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
 import { RedisService, ChaosConfig } from '../../infrastructure/redis/redis.service';
+import type { AppFastifyRequest } from '../../shared/types/request.types';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -18,14 +19,14 @@ export class AdminController {
 
   @Get('chaos')
   @Permission('admin:write')
-  async getChaos(@Req() req: any) {
+  async getChaos(@Req() req: AppFastifyRequest) {
     const tenantId = req.headers['x-tenant-id'];
     return this.redis.getChaosConfig(tenantId);
   }
 
   @Put('chaos')
   @Permission('admin:write')
-  async setChaos(@Req() req: any, @Body() body: ChaosConfig) {
+  async setChaos(@Req() req: AppFastifyRequest, @Body() body: ChaosConfig) {
     const tenantId = req.headers['x-tenant-id'];
     await this.redis.setChaosConfig(tenantId, body);
     return body;

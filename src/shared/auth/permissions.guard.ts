@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSION_KEY } from './permissions.decorator';
+import type { AppFastifyRequest } from '../types/request.types';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -13,7 +14,7 @@ export class PermissionsGuard implements CanActivate {
     ]);
     if (!required) return true;
 
-    const req: any = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<AppFastifyRequest>();
     const user = req.user;
     if (!user) throw new ForbiddenException('Missing user');
     if (user.tid === '*' && (user.roles || []).includes('admin')) return true;

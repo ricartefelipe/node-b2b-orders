@@ -16,7 +16,7 @@ export class AuthService {
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return null;
 
-    let tid = user.isGlobalAdmin ? '*' : user.tenantId;
+    const tid = user.isGlobalAdmin ? '*' : user.tenantId;
     if (!tid) return null;
 
     let plan = 'free';

@@ -141,12 +141,13 @@ async function main() {
     });
   }
 
+  // eslint-disable-next-line no-console -- seed script output
   console.log('Seed completed');
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch((e: unknown) => {
+    process.stderr.write(String(e) + '\n');
     process.exit(1);
   })
   .finally(async () => {
