@@ -10,7 +10,11 @@ import { JwtStrategy } from './jwt.strategy';
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'change-me',
+      secret: (() => {
+        const s = process.env.JWT_SECRET;
+        if (!s) throw new Error('JWT_SECRET environment variable is required');
+        return s;
+      })(),
       signOptions: { algorithm: 'HS256', issuer: process.env.JWT_ISSUER || 'local-auth' },
     }),
   ],

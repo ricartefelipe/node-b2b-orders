@@ -6,7 +6,8 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
-import { RedisService, ChaosConfig } from '../../infrastructure/redis/redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
+import { ChaosConfigDto } from './dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -25,7 +26,7 @@ export class AdminController {
 
   @Put('chaos')
   @Permission('admin:write')
-  async setChaos(@Req() req: any, @Body() body: ChaosConfig) {
+  async setChaos(@Req() req: any, @Body() body: ChaosConfigDto) {
     const tenantId = req.headers['x-tenant-id'];
     await this.redis.setChaosConfig(tenantId, body);
     return body;

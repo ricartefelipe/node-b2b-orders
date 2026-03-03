@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Headers, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../shared/auth/jwt.guard';
@@ -28,11 +28,15 @@ export class InventoryController {
 
   @Post('adjustments')
   @Permission('inventory:write')
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
   async createAdjustment(
     @Req() req: any,
     @Headers('idempotency-key') idem: string,
     @Body() body: CreateAdjustmentDto
   ) {
+    if (!idem) {
+      throw new BadRequestException('Idempotency-Key header is required');
+    }
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';
