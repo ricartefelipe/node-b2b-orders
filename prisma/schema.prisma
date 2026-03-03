@@ -147,6 +147,30 @@ model InventoryAdjustment {
   @@index([tenantId, createdAt])
 }
 
+model Product {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  sku         String
+  name        String
+  description String   @default("")
+  price       Decimal  @db.Decimal(12,2)
+  currency    String   @default("BRL")
+  category    String   @default("")
+  imageUrl    String   @default("") @map("image_url")
+  inStock     Boolean  @default(true) @map("in_stock")
+  rating      Decimal  @default(0) @db.Decimal(2,1)
+  reviewCount Int      @default(0) @map("review_count")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([tenantId, category])
+  @@index([tenantId, active])
+  @@map("products")
+}
+
 model OutboxEvent {
   id           String   @id @default(uuid())
   tenantId     String

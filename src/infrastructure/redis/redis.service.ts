@@ -46,7 +46,11 @@ export class RedisService {
   private tokenBucketSha: string | null = null;
 
   constructor() {
-    this.client = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    const redisUrl = process.env.REDIS_URL;
+    if (process.env.NODE_ENV === 'production' && !redisUrl) {
+      throw new Error('REDIS_URL environment variable is required in production');
+    }
+    this.client = new Redis(redisUrl || 'redis://localhost:6379', {
       lazyConnect: true,
     });
   }
