@@ -7,6 +7,7 @@ import { collectDefaultMetrics } from 'prom-client';
 import { v4 as uuidv4 } from 'uuid';
 
 import { AppModule } from './app.module';
+import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { RedisService } from './infrastructure/redis/redis.service';
 
 async function bootstrap() {
@@ -14,6 +15,15 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
     logger: ['log', 'error', 'warn'],
+  });
+
+  const corsOrigins = process.env.CORS_ORIGINS;
+  if (process.env.NODE_ENV === 'production' && !corsOrigins) {
+    throw new Error('CORS_ORIGINS environment variable is required in production (comma-separated)');
+  }
+  app.enableCors({
+    origin: corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : '*',
+    credentials: true,
   });
 
   app.setGlobalPrefix('v1');
@@ -27,8 +37,20 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
+  app.enableShutdownHooks();
+
   const redis = app.get(RedisService);
+  const prisma = app.get(PrismaService);
   const fastify = app.getHttpAdapter().getInstance();
+
+  const shutdown = async (signal: string) => {
+    console.log(`Received ${signal}, shutting down gracefully...`);
+    try { await redis.raw.quit(); } catch {}
+    try { await prisma.$disconnect(); } catch {}
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 
   fastify.addHook('onRequest', async (req: any, reply: any) => {
     const cid = req.headers['x-correlation-id'] || uuidv4().replace(/-/g, '');

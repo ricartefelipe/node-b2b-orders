@@ -1,10 +1,15 @@
 import * as amqp from 'amqplib';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
+import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { Counter } from 'prom-client';
 import CircuitBreaker from 'opossum';
 
 import { createCircuitBreaker } from '../infrastructure/circuit-breaker/circuit-breaker.factory';
+
+const HEARTBEAT_FILE = path.join(process.env.HEARTBEAT_DIR || '/tmp', 'worker-heartbeat');
 
 const EXCHANGE = process.env.ORDERS_EXCHANGE || 'orders.x';
 const QUEUE = process.env.ORDERS_QUEUE || 'orders.events';
@@ -15,6 +20,14 @@ const PAYMENTS_QUEUE = process.env.PAYMENTS_INBOUND_QUEUE || 'orders.payments';
 const PAYMENTS_DLQ = process.env.PAYMENTS_DLQ || 'orders.payments.dlq';
 
 type AnyJson = any;
+
+const DEDUP_TTL_SECONDS = 86_400; // 24h
+
+async function isAlreadyProcessed(redis: Redis, eventType: string, eventId: string): Promise<boolean> {
+  const key = `processed:${eventType}:${eventId}`;
+  const result = await redis.set(key, '1', 'EX', DEDUP_TTL_SECONDS, 'NX');
+  return result === null; // NX returns null if key already existed
+}
 
 const inventoryReserved = new Counter({
   name: 'inventory_reserved_total',
@@ -319,24 +332,116 @@ async function handlePaymentMessage(prisma: PrismaClient, routingKey: string, bo
   }
 }
 
-async function main() {
-  const prisma = new PrismaClient();
+let shutdownRequested = false;
+let activeConnection: amqp.Connection | null = null;
+let activeChannels: amqp.Channel[] = [];
+let activePrisma: PrismaClient | null = null;
+let activeRedis: Redis | null = null;
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+
+function writeHeartbeat() {
+  try {
+    fs.writeFileSync(HEARTBEAT_FILE, Date.now().toString(), 'utf8');
+  } catch {}
+}
+
+async function gracefulShutdown(signal: string) {
+  if (shutdownRequested) return;
+  shutdownRequested = true;
+  log('worker.shutting_down', { signal });
+
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  try { fs.unlinkSync(HEARTBEAT_FILE); } catch {}
+
+  for (const ch of activeChannels) {
+    try { await ch.close(); } catch {}
+  }
+  activeChannels = [];
+
+  if (activeConnection) {
+    try { await activeConnection.close(); } catch {}
+    activeConnection = null;
+  }
+  if (activePrisma) {
+    try { await activePrisma.$disconnect(); } catch {}
+    activePrisma = null;
+  }
+  if (activeRedis) {
+    try { await activeRedis.quit(); } catch {}
+    activeRedis = null;
+  }
+
+  log('worker.shutdown_complete', { signal });
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+async function connectRabbitMQ(rabbitUrl: string): Promise<amqp.Connection> {
+  const MAX_RETRIES = 10;
+  let attempt = 0;
+
+  while (!shutdownRequested) {
+    try {
+      attempt++;
+      const conn = await amqp.connect(rabbitUrl);
+
+      conn.on('error', (err) => {
+        log('rabbitmq.connection_error', { error: String(err) });
+      });
+      conn.on('close', () => {
+        if (shutdownRequested) return;
+        log('rabbitmq.connection_closed_unexpectedly');
+        activeConnection = null;
+        reconnect(rabbitUrl);
+      });
+
+      attempt = 0;
+      return conn;
+    } catch (err) {
+      if (attempt >= MAX_RETRIES) {
+        log('rabbitmq.max_retries_exceeded', { attempts: attempt });
+        throw err;
+      }
+      const backoffMs = Math.min(30_000, 1_000 * 2 ** Math.min(attempt, 14));
+      log('rabbitmq.connect_retry', { attempt, backoffMs, error: String(err) });
+      await sleep(backoffMs);
+    }
+  }
+
+  throw new Error('Shutdown requested during RabbitMQ connect');
+}
+
+async function reconnect(rabbitUrl: string) {
+  if (shutdownRequested) return;
+  log('rabbitmq.reconnecting');
+
+  try {
+    const conn = await connectRabbitMQ(rabbitUrl);
+    activeConnection = conn;
+    await setupChannelsAndConsumers(conn);
+    log('rabbitmq.reconnected');
+  } catch (err) {
+    log('rabbitmq.reconnect_failed', { error: String(err) });
+    if (!shutdownRequested) process.exit(1);
+  }
+}
+
+async function setupChannelsAndConsumers(conn: amqp.Connection) {
   const workerId = process.env.HOSTNAME || `worker-${uuidv4().slice(0, 8)}`;
-  const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
 
-  log('worker.starting', { workerId, rabbitUrl: rabbitUrl.replace(/\/\/.*@/, '//***@') });
-
-  const conn = await amqp.connect(rabbitUrl);
   const chDispatch = await conn.createChannel();
   const chConsume = await conn.createChannel();
   const chPayments = await conn.createChannel();
+  activeChannels = [chDispatch, chConsume, chPayments];
 
   await ensureOrdersTopology(chDispatch);
   await ensureOrdersTopology(chConsume);
   await ensurePaymentsTopology(chDispatch);
   await ensurePaymentsTopology(chPayments);
 
-  dispatchOutbox(prisma, chDispatch, workerId).catch((e) =>
+  dispatchOutbox(activePrisma!, chDispatch, workerId).catch((e) =>
     log('dispatchOutbox.fatal', { error: String(e) })
   );
 
@@ -348,14 +453,20 @@ async function main() {
       const routingKey = msg.fields.routingKey;
       try {
         const body = JSON.parse(msg.content.toString('utf8'));
-        await handleOrderMessage(prisma, routingKey, body);
+        const eventId = body.orderId || msg.properties.messageId || msg.fields.deliveryTag;
+        if (activeRedis && await isAlreadyProcessed(activeRedis, routingKey, String(eventId))) {
+          log('dedup.skipped', { routingKey, eventId });
+          chConsume.ack(msg);
+          return;
+        }
+        await handleOrderMessage(activePrisma!, routingKey, body);
         chConsume.ack(msg);
       } catch (e) {
         log('handler.error', { routingKey: msg.fields.routingKey, error: String(e) });
         chConsume.reject(msg, false);
       }
     },
-    { noAck: false }
+    { noAck: false },
   );
 
   await chPayments.prefetch(10);
@@ -366,15 +477,52 @@ async function main() {
       const routingKey = msg.fields.routingKey;
       try {
         const body = JSON.parse(msg.content.toString('utf8'));
-        await handlePaymentMessage(prisma, routingKey, body);
+        const eventId = body.orderId || body.order_id || msg.properties.messageId || msg.fields.deliveryTag;
+        if (activeRedis && await isAlreadyProcessed(activeRedis, routingKey, String(eventId))) {
+          log('dedup.skipped', { routingKey, eventId });
+          chPayments.ack(msg);
+          return;
+        }
+        await handlePaymentMessage(activePrisma!, routingKey, body);
         chPayments.ack(msg);
       } catch (e) {
         log('payment_handler.error', { routingKey: msg.fields.routingKey, error: String(e) });
         chPayments.reject(msg, false);
       }
     },
-    { noAck: false }
+    { noAck: false },
   );
+}
+
+async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    if (!process.env.RABBITMQ_URL) {
+      throw new Error('RABBITMQ_URL environment variable is required in production');
+    }
+    if (!process.env.REDIS_URL) {
+      throw new Error('REDIS_URL environment variable is required in production');
+    }
+  }
+
+  const prisma = new PrismaClient();
+  activePrisma = prisma;
+
+  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  activeRedis = new Redis(redisUrl, { lazyConnect: true });
+  await activeRedis.connect();
+
+  const workerId = process.env.HOSTNAME || `worker-${uuidv4().slice(0, 8)}`;
+  const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
+
+  log('worker.starting', { workerId, rabbitUrl: rabbitUrl.replace(/\/\/.*@/, '//***@') });
+
+  const conn = await connectRabbitMQ(rabbitUrl);
+  activeConnection = conn;
+
+  await setupChannelsAndConsumers(conn);
+
+  writeHeartbeat();
+  heartbeatInterval = setInterval(writeHeartbeat, 10_000);
 
   log('worker.started', { workerId });
 }
