@@ -17,6 +17,8 @@ WORKDIR /app
 
 RUN addgroup -g 2000 app && adduser -u 2000 -G app -D app
 
+RUN apk add --no-cache openssl
+
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
