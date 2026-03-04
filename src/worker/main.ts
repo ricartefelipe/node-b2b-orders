@@ -333,7 +333,7 @@ async function handlePaymentMessage(prisma: PrismaClient, routingKey: string, bo
 }
 
 let shutdownRequested = false;
-let activeConnection: amqp.Connection | null = null;
+let activeConnection: amqp.ChannelModel | null = null;
 let activeChannels: amqp.Channel[] = [];
 let activePrisma: PrismaClient | null = null;
 let activeRedis: Redis | null = null;
@@ -378,7 +378,7 @@ async function gracefulShutdown(signal: string) {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-async function connectRabbitMQ(rabbitUrl: string): Promise<amqp.Connection> {
+async function connectRabbitMQ(rabbitUrl: string): Promise<amqp.ChannelModel> {
   const MAX_RETRIES = 10;
   let attempt = 0;
 
@@ -428,7 +428,7 @@ async function reconnect(rabbitUrl: string) {
   }
 }
 
-async function setupChannelsAndConsumers(conn: amqp.Connection) {
+async function setupChannelsAndConsumers(conn: amqp.ChannelModel) {
   const workerId = process.env.HOSTNAME || `worker-${uuidv4().slice(0, 8)}`;
 
   const chDispatch = await conn.createChannel();

@@ -11,5 +11,6 @@
     "sourceMap": false,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "prisma/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "prisma/**/*.ts"],
+  "exclude": ["test/**/*.ts", "**/*.spec.ts", "**/*.e2e-spec.ts"]
 }
