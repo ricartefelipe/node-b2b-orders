@@ -22,6 +22,8 @@ async function main() {
     'orders:read',
     'inventory:read',
     'inventory:write',
+    'products:read',
+    'products:write',
     'admin:write',
     'profile:read',
   ];
@@ -31,8 +33,8 @@ async function main() {
 
   const roleMap: Record<string, string[]> = {
     admin: perms,
-    ops: ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'profile:read'],
-    sales: ['orders:read', 'inventory:read', 'profile:read'],
+    ops: ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'products:read', 'products:write', 'profile:read'],
+    sales: ['orders:read', 'inventory:read', 'products:read', 'profile:read'],
   };
 
   for (const [roleName, pList] of Object.entries(roleMap)) {
@@ -63,6 +65,16 @@ async function main() {
     },
     {
       permissionCode: 'inventory:write',
+      allowedPlans: ['pro', 'enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
+    {
+      permissionCode: 'products:read',
+      allowedPlans: ['free', 'pro', 'enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
+    {
+      permissionCode: 'products:write',
       allowedPlans: ['pro', 'enterprise'],
       allowedRegions: ['region-a', 'region-b'],
     },
@@ -138,6 +150,51 @@ async function main() {
       where: { tenantId_sku: { tenantId, sku: item.sku } },
       update: { availableQty: item.availableQty },
       create: { tenantId, sku: item.sku, availableQty: item.availableQty, reservedQty: 0 },
+    });
+  }
+
+  const products = [
+    { sku: 'ELET-001', name: 'Notebook Corporativo 15"', price: 4899.90, category: 'Eletrônicos', description: 'Notebook profissional com 16GB RAM, SSD 512GB, tela IPS Full HD', rating: 4.5, reviewCount: 128 },
+    { sku: 'ELET-002', name: 'Monitor Ultrawide 34"', price: 3299.00, category: 'Eletrônicos', description: 'Monitor curvo 34 polegadas UWQHD, ideal para produtividade', rating: 4.7, reviewCount: 85 },
+    { sku: 'ELET-003', name: 'Teclado Mecânico Sem Fio', price: 489.90, category: 'Eletrônicos', description: 'Teclado mecânico Bluetooth/USB-C, switches silenciosos', rating: 4.3, reviewCount: 214 },
+    { sku: 'ELET-004', name: 'Mouse Ergonômico Vertical', price: 259.90, category: 'Eletrônicos', description: 'Mouse vertical wireless com 6 botões programáveis', rating: 4.1, reviewCount: 167 },
+    { sku: 'ELET-005', name: 'Webcam Full HD com Microfone', price: 349.90, category: 'Eletrônicos', description: 'Webcam 1080p com autofoco e cancelamento de ruído', rating: 4.0, reviewCount: 92 },
+    { sku: 'ESCR-001', name: 'Cadeira Executiva Premium', price: 2199.00, category: 'Escritório', description: 'Cadeira ergonômica com apoio lombar ajustável e braços 4D', rating: 4.6, reviewCount: 301 },
+    { sku: 'ESCR-002', name: 'Mesa Elevatória 160cm', price: 3499.00, category: 'Escritório', description: 'Mesa sit-stand elétrica com memória de posições, tampo MDP', rating: 4.8, reviewCount: 56 },
+    { sku: 'ESCR-003', name: 'Organizador de Cabos Kit', price: 79.90, category: 'Escritório', description: 'Kit com 20 presilhas, 2 canaletas e 5 etiquetas para organização', rating: 3.9, reviewCount: 420 },
+    { sku: 'ESCR-004', name: 'Luminária LED de Mesa', price: 189.90, category: 'Escritório', description: 'Luminária LED com 5 níveis de brilho e temperatura de cor ajustável', rating: 4.4, reviewCount: 178 },
+    { sku: 'ESCR-005', name: 'Apoio para Pés Ajustável', price: 149.90, category: 'Escritório', description: 'Apoio ergonômico com inclinação regulável e superfície antiderrapante', rating: 4.2, reviewCount: 95 },
+    { sku: 'IND-001', name: 'Compressor de Ar 50L', price: 1899.00, category: 'Industrial', description: 'Compressor industrial 2HP, tanque 50 litros, pressão máx 120 PSI', rating: 4.3, reviewCount: 44 },
+    { sku: 'IND-002', name: 'Furadeira de Coluna', price: 2799.00, category: 'Industrial', description: 'Furadeira de bancada 16mm com motor 750W e mesa inclinável', rating: 4.5, reviewCount: 32 },
+    { sku: 'IND-003', name: 'Empilhadeira Manual 2T', price: 4599.00, category: 'Industrial', description: 'Empilhadeira hidráulica manual, capacidade 2000kg, garfos 1150mm', rating: 4.7, reviewCount: 18 },
+    { sku: 'IND-004', name: 'Estante Industrial 5 Níveis', price: 689.90, category: 'Industrial', description: 'Estante metálica 200x100x50cm, capacidade 350kg por prateleira', rating: 4.1, reviewCount: 76 },
+    { sku: 'IND-005', name: 'Caixa de Ferramentas Profissional', price: 459.90, category: 'Industrial', description: 'Caixa sanfonada com 5 gavetas, 65 peças incluídas', rating: 4.4, reviewCount: 112 },
+    { sku: 'SEG-001', name: 'Câmera IP PoE 4MP', price: 599.90, category: 'Segurança', description: 'Câmera bullet com visão noturna 30m, IP67, detecção de movimento', rating: 4.6, reviewCount: 203 },
+    { sku: 'SEG-002', name: 'Controle de Acesso Biométrico', price: 1299.00, category: 'Segurança', description: 'Leitor biométrico com facial e digital, capacidade 3000 usuários', rating: 4.2, reviewCount: 67 },
+    { sku: 'SEG-003', name: 'Fechadura Digital Smart', price: 899.90, category: 'Segurança', description: 'Fechadura com senha, cartão RFID, biometria e app mobile', rating: 4.0, reviewCount: 145 },
+    { sku: 'SEG-004', name: 'Cofre Digital 50L', price: 1599.00, category: 'Segurança', description: 'Cofre eletrônico com teclado e chave de emergência, anti-arrombamento', rating: 4.5, reviewCount: 38 },
+    { sku: 'SEG-005', name: 'Kit Alarme Empresarial', price: 2199.00, category: 'Segurança', description: 'Central de alarme com 8 zonas, 4 sensores IR e 2 controles', rating: 4.3, reviewCount: 54 },
+    { sku: 'LIMP-001', name: 'Lavadora de Alta Pressão Industrial', price: 3299.00, category: 'Limpeza', description: 'Lavadora 2500 PSI com motor de indução, uso contínuo', rating: 4.7, reviewCount: 89 },
+    { sku: 'LIMP-002', name: 'Aspirador Industrial 80L', price: 2499.00, category: 'Limpeza', description: 'Aspirador sólidos e líquidos 80L com 2 motores, 2400W', rating: 4.4, reviewCount: 61 },
+    { sku: 'LIMP-003', name: 'Enceradeira Industrial 510mm', price: 1899.00, category: 'Limpeza', description: 'Enceradeira com disco de 510mm para grandes áreas', rating: 4.1, reviewCount: 27 },
+    { sku: 'LIMP-004', name: 'Dispensador de Papel Toalha', price: 129.90, category: 'Limpeza', description: 'Dispensador em ABS para papel interfolhado, fixação parede', rating: 3.8, reviewCount: 312 },
+    { sku: 'LIMP-005', name: 'Kit Limpeza Profissional', price: 349.90, category: 'Limpeza', description: 'Balde espremedor, mop profissional, rodo 60cm e pulverizador 2L', rating: 4.2, reviewCount: 198 },
+  ];
+
+  for (const p of products) {
+    await prisma.product.upsert({
+      where: { tenantId_sku: { tenantId, sku: p.sku } },
+      update: { name: p.name, price: p.price, category: p.category, description: p.description, rating: p.rating, reviewCount: p.reviewCount },
+      create: {
+        tenantId,
+        sku: p.sku,
+        name: p.name,
+        price: p.price,
+        category: p.category,
+        description: p.description,
+        rating: p.rating,
+        reviewCount: p.reviewCount,
+      },
     });
   }
 

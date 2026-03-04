@@ -8,6 +8,7 @@ import { BusinessMetricsModule } from './shared/metrics/business-metrics.module'
 import { AuditModule } from './shared/audit/audit.module';
 import { AuthModule } from './interfaces/auth/auth.module';
 import { OrdersModule } from './interfaces/orders/orders.module';
+import { ProductsModule } from './interfaces/products/products.module';
 import { InventoryModule } from './interfaces/inventory/inventory.module';
 import { AdminModule } from './interfaces/admin/admin.module';
 import { MetricsModule } from './interfaces/metrics/metrics.module';
@@ -22,6 +23,7 @@ import { MetricsModule } from './interfaces/metrics/metrics.module';
     AuditModule,
     AuthModule,
     OrdersModule,
+    ProductsModule,
     InventoryModule,
     AdminModule,
     MetricsModule,
