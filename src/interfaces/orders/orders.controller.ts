@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../shared/auth/jwt.guard';
@@ -36,7 +36,7 @@ export class OrdersController {
   async confirm(
     @Req() req: any,
     @Headers('idempotency-key') idem: string,
-    @Param('id') id: string
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
@@ -46,7 +46,7 @@ export class OrdersController {
 
   @Post(':id/cancel')
   @Permission('orders:write')
-  async cancel(@Req() req: any, @Param('id') id: string) {
+  async cancel(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';
@@ -55,7 +55,7 @@ export class OrdersController {
 
   @Get(':id')
   @Permission('orders:read')
-  async getOne(@Req() req: any, @Param('id') id: string) {
+  async getOne(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     const tenantId = req.headers['x-tenant-id'];
     return this.orders.getOrder(tenantId, id);
   }
