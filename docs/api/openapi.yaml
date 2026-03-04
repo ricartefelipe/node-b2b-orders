@@ -1,5 +1,873 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
   title: node-b2b-orders
-  version: 0.1.0
-paths: {}
+  description: Serviço de pedidos, inventário e catálogo de produtos B2B multi-tenant.
+  version: 0.2.0
+  contact:
+    name: Union Solutions
+
+servers:
+  - url: http://localhost:3000/v1
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Autenticação e dados do usuário
+  - name: Orders
+    description: Gerenciamento de pedidos
+  - name: Inventory
+    description: Inventário e ajustes
+  - name: Products
+    description: Catálogo de produtos
+  - name: Admin
+    description: Configuração de chaos engineering
+  - name: Health
+    description: Métricas, liveness e readiness
+
+paths:
+  # ── Auth ──────────────────────────────────────────────────
+  /auth/token:
+    post:
+      tags: [Auth]
+      summary: Emitir token de acesso
+      operationId: issueToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+      responses:
+        "200":
+          description: Token emitido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Credenciais inválidas
+
+  /me:
+    get:
+      tags: [Auth]
+      summary: Dados do usuário autenticado
+      operationId: me
+      responses:
+        "200":
+          description: Dados do usuário (payload do JWT)
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ── Orders ────────────────────────────────────────────────
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Criar pedido
+      operationId: createOrder
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+        - name: Idempotency-Key
+          in: header
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+      responses:
+        "201":
+          description: Pedido criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Orders]
+      summary: Listar pedidos (cursor pagination)
+      operationId: listOrders
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+        - name: status
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/cursor"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: Página de pedidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageOrder"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /orders/{id}:
+    parameters:
+      - $ref: "#/components/parameters/XTenantId"
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Orders]
+      summary: Buscar pedido por ID
+      operationId: getOrder
+      responses:
+        "200":
+          description: Pedido encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders/{id}/confirm:
+    parameters:
+      - $ref: "#/components/parameters/XTenantId"
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Orders]
+      summary: Confirmar pedido
+      operationId: confirmOrder
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema: { type: string }
+      responses:
+        "200":
+          description: Pedido confirmado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/XTenantId"
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Orders]
+      summary: Cancelar pedido
+      operationId: cancelOrder
+      responses:
+        "200":
+          description: Pedido cancelado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Inventory ─────────────────────────────────────────────
+  /inventory:
+    get:
+      tags: [Inventory]
+      summary: Listar inventário (cursor pagination)
+      operationId: listInventory
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+        - name: sku
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/cursor"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: Página de registros de inventário
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageInventory"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /inventory/adjustments:
+    post:
+      tags: [Inventory]
+      summary: Criar ajuste de inventário
+      operationId: createAdjustment
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdjustment"
+      responses:
+        "201":
+          description: Ajuste criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Adjustment"
+        "400":
+          description: Idempotency-Key obrigatório
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Inventory]
+      summary: Listar ajustes de inventário
+      operationId: listAdjustments
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+        - name: sku
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/cursor"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: Página de ajustes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageAdjustment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── Products ──────────────────────────────────────────────
+  /products:
+    get:
+      tags: [Products]
+      summary: Listar produtos com filtros (cursor pagination)
+      operationId: listProducts
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: minPrice
+          in: query
+          schema: { type: number, minimum: 0 }
+        - name: maxPrice
+          in: query
+          schema: { type: number, minimum: 0 }
+        - name: inStock
+          in: query
+          schema: { type: boolean }
+        - name: searchTerm
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/cursor"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: Página de produtos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CursorPageProduct"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Products]
+      summary: Criar produto
+      operationId: createProduct
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProduct"
+      responses:
+        "201":
+          description: Produto criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          description: Dados inválidos
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: SKU duplicado para o tenant
+
+  /products/{id}:
+    parameters:
+      - $ref: "#/components/parameters/XTenantId"
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Products]
+      summary: Buscar produto por ID
+      operationId: getProduct
+      responses:
+        "200":
+          description: Produto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Products]
+      summary: Atualizar produto
+      operationId: updateProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProduct"
+      responses:
+        "200":
+          description: Produto atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Products]
+      summary: Soft-delete de produto
+      operationId: deleteProduct
+      responses:
+        "200":
+          description: Produto desativado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /products/metadata/categories:
+    get:
+      tags: [Products]
+      summary: Listar categorias únicas dos produtos do tenant
+      operationId: getProductCategories
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+      responses:
+        "200":
+          description: Lista de categorias
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /products/metadata/price-range:
+    get:
+      tags: [Products]
+      summary: Faixa de preço (min/max) dos produtos do tenant
+      operationId: getProductPriceRange
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+      responses:
+        "200":
+          description: Faixa de preço
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceRange"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── Admin ─────────────────────────────────────────────────
+  /admin/chaos:
+    get:
+      tags: [Admin]
+      summary: Obter configuração de chaos engineering
+      operationId: getChaosConfig
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+      responses:
+        "200":
+          description: Configuração atual
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChaosConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin]
+      summary: Atualizar configuração de chaos engineering
+      operationId: setChaosConfig
+      parameters:
+        - $ref: "#/components/parameters/XTenantId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChaosConfig"
+      responses:
+        "200":
+          description: Configuração atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChaosConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── Health & Metrics ──────────────────────────────────────
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      operationId: healthz
+      security: []
+      responses:
+        "200":
+          description: Serviço vivo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+
+  /readyz:
+    get:
+      tags: [Health]
+      summary: Readiness probe (DB, Redis)
+      operationId: readyz
+      security: []
+      responses:
+        "200":
+          description: Status das dependências (status=ok ou status=fail)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+
+  /metrics:
+    get:
+      tags: [Health]
+      summary: Métricas Prometheus
+      operationId: metrics
+      security: []
+      responses:
+        "200":
+          description: Métricas no formato Prometheus
+          content:
+            text/plain:
+              schema: { type: string }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    XTenantId:
+      name: X-Tenant-Id
+      in: header
+      required: true
+      schema: { type: string, format: uuid }
+    cursor:
+      name: cursor
+      in: query
+      description: Cursor opaco da página anterior (base64url)
+      schema: { type: string }
+    limit:
+      name: limit
+      in: query
+      schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+
+  responses:
+    Unauthorized:
+      description: Não autenticado
+    Forbidden:
+      description: Sem permissão
+    NotFound:
+      description: Recurso não encontrado
+
+  schemas:
+    # ── Auth ──────────────────────────────────────────────
+    TokenRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 3
+        tenantId:
+          type: string
+      required: [email, password]
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+      required: [access_token, token_type, expires_in]
+
+    # ── Orders ────────────────────────────────────────────
+    OrderItem:
+      type: object
+      properties:
+        sku:
+          type: string
+        qty:
+          type: integer
+          minimum: 1
+        price:
+          type: number
+          minimum: 0
+      required: [sku, qty, price]
+
+    CreateOrderRequest:
+      type: object
+      properties:
+        customerId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+      required: [customerId, items]
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        customerId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, CANCELLED]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        totalAmount:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CursorPageOrder:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        nextCursor:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean
+      required: [data, hasMore]
+
+    # ── Inventory ─────────────────────────────────────────
+    Inventory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        sku:
+          type: string
+        qty:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CursorPageInventory:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Inventory"
+        nextCursor:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean
+      required: [data, hasMore]
+
+    CreateAdjustment:
+      type: object
+      properties:
+        sku:
+          type: string
+        type:
+          type: string
+          enum: [IN, OUT, ADJUSTMENT]
+        qty:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+      required: [sku, type, qty, reason]
+
+    Adjustment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        sku:
+          type: string
+        type:
+          type: string
+          enum: [IN, OUT, ADJUSTMENT]
+        qty:
+          type: integer
+        reason:
+          type: string
+        actorSub:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CursorPageAdjustment:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Adjustment"
+        nextCursor:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean
+      required: [data, hasMore]
+
+    # ── Products ──────────────────────────────────────────
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: decimal
+        currency:
+          type: string
+          example: BRL
+        category:
+          type: string
+        imageUrl:
+          type: string
+        inStock:
+          type: boolean
+        rating:
+          type: number
+          format: decimal
+        reviewCount:
+          type: integer
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, sku, name, price, currency, inStock, active, createdAt, updatedAt]
+
+    CreateProduct:
+      type: object
+      properties:
+        name:
+          type: string
+        sku:
+          type: string
+        price:
+          type: number
+          minimum: 0
+        description:
+          type: string
+        category:
+          type: string
+        imageUrl:
+          type: string
+        currency:
+          type: string
+          default: BRL
+      required: [name, sku, price]
+
+    UpdateProduct:
+      type: object
+      properties:
+        name:
+          type: string
+        sku:
+          type: string
+        price:
+          type: number
+          minimum: 0
+        description:
+          type: string
+        category:
+          type: string
+        imageUrl:
+          type: string
+        currency:
+          type: string
+        inStock:
+          type: boolean
+
+    CursorPageProduct:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        nextCursor:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean
+      required: [data, hasMore]
+
+    PriceRange:
+      type: object
+      properties:
+        min:
+          type: number
+        max:
+          type: number
+      required: [min, max]
+
+    # ── Admin ─────────────────────────────────────────────
+    ChaosConfig:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        failPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        latencyMs:
+          type: number
+          minimum: 0
+      required: [enabled, failPercent, latencyMs]
+
+    # ── Health ────────────────────────────────────────────
+    ReadinessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, fail]
+        component:
+          type: string
+        error:
+          type: string
