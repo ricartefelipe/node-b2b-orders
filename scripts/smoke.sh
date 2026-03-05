@@ -103,7 +103,7 @@ echo "[7] List inventory"
 INV_JSON=$(curl -sS "$API_BASE/v1/inventory" \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant-Id: $TENANT")
-INV_LEN=$(echo "$INV_JSON" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).length))")
+INV_LEN=$(echo "$INV_JSON" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(Array.isArray(r)?r.length:r.data.length)})")
 assert_eq "$(test "$INV_LEN" -ge 1 && echo ok || echo fail)" "ok" "inventory has items"
 
 # --- Inventory adjustment ---
@@ -121,7 +121,7 @@ echo "[9] List inventory adjustments"
 ADJS_JSON=$(curl -sS "$API_BASE/v1/inventory/adjustments?sku=SKU-1" \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant-Id: $TENANT")
-ADJS_LEN=$(echo "$ADJS_JSON" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).length))")
+ADJS_LEN=$(echo "$ADJS_JSON" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(Array.isArray(r)?r.length:r.data.length)})")
 assert_eq "$(test "$ADJS_LEN" -ge 1 && echo ok || echo fail)" "ok" "adjustments listed"
 
 # --- Metrics ---
