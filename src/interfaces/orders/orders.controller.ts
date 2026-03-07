@@ -28,7 +28,8 @@ export class OrdersController {
   ) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
-    return this.orders.createOrder(tenantId, correlationId, idem, body.customerId, body.items);
+    const actorSub = req.user?.sub || 'unknown';
+    return this.orders.createOrder(tenantId, correlationId, idem, body.customerId, body.items, actorSub);
   }
 
   @Post(':id/confirm')
