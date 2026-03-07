@@ -19,7 +19,7 @@
     "api:export": "node dist/src/scripts/export-openapi.js"
   },
   "dependencies": {
-    "@fastify/helmet": "^13.0.2",
+    "@fastify/helmet": "^11.1.1",
     "@fastify/static": "^7.0.4",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.2.0",
