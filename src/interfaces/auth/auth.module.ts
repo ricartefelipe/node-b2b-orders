@@ -9,14 +9,25 @@ import { JwtStrategy } from './jwt.strategy';
 @Module({
   imports: [
     PassportModule,
-    JwtModule.register({
-      secret: (() => {
-        const s = process.env.JWT_SECRET;
-        if (!s) throw new Error('JWT_SECRET environment variable is required');
-        return s;
-      })(),
-      signOptions: { algorithm: 'HS256', issuer: process.env.JWT_ISSUER || 'local-auth' },
-    }),
+    JwtModule.register((() => {
+      const jwksUri = process.env.JWKS_URI || '';
+      const jwtSecret = process.env.JWT_SECRET;
+      const algorithm = jwksUri ? 'RS256' : 'HS256';
+
+      if (jwksUri) {
+        return {
+          signOptions: { algorithm, issuer: process.env.JWT_ISSUER || 'local-auth' },
+        };
+      }
+
+      if (!jwtSecret) {
+        throw new Error('Either JWKS_URI (RS256) or JWT_SECRET (HS256) must be set');
+      }
+      return {
+        secret: jwtSecret,
+        signOptions: { algorithm, issuer: process.env.JWT_ISSUER || 'local-auth' },
+      };
+    })()),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
