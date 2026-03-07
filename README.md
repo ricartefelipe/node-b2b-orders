@@ -91,6 +91,14 @@ Cliente HTTP
 - **Docker** e **Docker Compose**
 - **Node.js 20+** (para rodar API/Worker fora do Docker)
 
+### Rede Docker compartilhada
+
+Todos os serviços da plataforma Fluxe B2B usam a rede externa `fluxe_shared` para comunicação entre containers. O script `up.sh` cria automaticamente a rede caso ela não exista. Para criar manualmente:
+
+```bash
+docker network create fluxe_shared
+```
+
 ### Setup completo (um comando)
 
 ```bash

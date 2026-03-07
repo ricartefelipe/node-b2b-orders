@@ -11,6 +11,7 @@ import { AuditService } from '../../shared/audit/audit.service';
 @ApiTags('audit')
 @ApiBearerAuth()
 @ApiHeader({ name: 'X-Tenant-Id', required: true })
+@ApiHeader({ name: 'X-Correlation-Id', required: false, description: 'ID para distributed tracing' })
 @Controller('audit')
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard, AbacGuard)
 export class AuditController {
