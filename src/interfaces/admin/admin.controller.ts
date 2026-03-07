@@ -12,6 +12,7 @@ import { ChaosConfigDto } from './dto';
 @ApiTags('admin')
 @ApiBearerAuth()
 @ApiHeader({ name: 'X-Tenant-Id', required: true })
+@ApiHeader({ name: 'X-Correlation-Id', required: false, description: 'ID para distributed tracing' })
 @Controller('admin')
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard, AbacGuard)
 export class AdminController {
