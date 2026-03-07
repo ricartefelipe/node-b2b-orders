@@ -26,6 +26,7 @@ import { ProductsService } from './products.service';
 @ApiTags('products')
 @ApiBearerAuth()
 @ApiHeader({ name: 'X-Tenant-Id', required: true })
+@ApiHeader({ name: 'X-Correlation-Id', required: false, description: 'ID para distributed tracing' })
 @Controller('products')
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard, AbacGuard)
 export class ProductsController {
