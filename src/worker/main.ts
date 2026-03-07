@@ -23,7 +23,7 @@ type AnyJson = any;
 
 const DEDUP_TTL_SECONDS = 86_400; // 24h
 
-async function isAlreadyProcessed(redis: Redis, eventType: string, eventId: string): Promise<boolean> {
+export async function isAlreadyProcessed(redis: Redis, eventType: string, eventId: string): Promise<boolean> {
   const key = `processed:${eventType}:${eventId}`;
   const result = await redis.set(key, '1', 'EX', DEDUP_TTL_SECONDS, 'NX');
   return result === null; // NX returns null if key already existed
@@ -174,7 +174,7 @@ async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: 
   }
 }
 
-async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body: AnyJson) {
+export async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body: AnyJson) {
   const orderId = body.orderId as string;
   const tenantId = body.tenantId as string;
   const correlationId = body.correlationId || '';
@@ -302,7 +302,7 @@ async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body
   }
 }
 
-async function handlePaymentMessage(prisma: PrismaClient, routingKey: string, body: AnyJson) {
+export async function handlePaymentMessage(prisma: PrismaClient, routingKey: string, body: AnyJson) {
   if (routingKey === 'payment.settled') {
     const orderId = body.orderId || body.order_id;
     const tenantId = body.tenantId || body.tenant_id;
@@ -527,7 +527,9 @@ async function main() {
   log('worker.started', { workerId });
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
