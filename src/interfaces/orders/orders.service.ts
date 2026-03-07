@@ -29,7 +29,8 @@ export class OrdersService {
     correlationId: string,
     idempotencyKey: string,
     customerId: string,
-    items: { sku: string; qty: number; price: number }[]
+    items: { sku: string; qty: number; price: number }[],
+    actorSub?: string,
   ) {
     if (!idempotencyKey) throw new BadRequestException('Missing Idempotency-Key');
     const idemKey = `idem:${tenantId}:create-order:${idempotencyKey}`;
@@ -63,6 +64,15 @@ export class OrdersService {
     });
 
     this.metrics.ordersCreated.inc({ tenant_id: tenantId });
+
+    await this.audit.log({
+      tenantId,
+      actorSub: actorSub || 'unknown',
+      action: 'order.created',
+      target: `Order:${order.id}`,
+      detail: { orderId: order.id, customerId, itemCount: items.length },
+      correlationId,
+    });
 
     const response = {
       id: order.id,

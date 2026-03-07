@@ -14,6 +14,7 @@ import { OrdersService } from './orders.service';
 @ApiTags('orders')
 @ApiBearerAuth()
 @ApiHeader({ name: 'X-Tenant-Id', required: true })
+@ApiHeader({ name: 'X-Correlation-Id', required: false, description: 'ID para distributed tracing' })
 @Controller('orders')
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard, AbacGuard)
 export class OrdersController {
@@ -21,6 +22,7 @@ export class OrdersController {
 
   @Post()
   @Permission('orders:write')
+  @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
   async create(
     @Req() req: any,
     @Headers('idempotency-key') idem: string,
@@ -28,11 +30,13 @@ export class OrdersController {
   ) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
-    return this.orders.createOrder(tenantId, correlationId, idem, body.customerId, body.items);
+    const actorSub = req.user?.sub || 'unknown';
+    return this.orders.createOrder(tenantId, correlationId, idem, body.customerId, body.items, actorSub);
   }
 
   @Post(':id/confirm')
   @Permission('orders:write')
+  @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
   async confirm(
     @Req() req: any,
     @Headers('idempotency-key') idem: string,

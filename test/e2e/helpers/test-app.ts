@@ -19,7 +19,7 @@ const TEST_JWT_PAYLOAD = {
   plan: 'pro',
   region: 'region-a',
   roles: ['admin'],
-  permissions: [
+  perms: [
     'orders:read',
     'orders:write',
     'products:read',
