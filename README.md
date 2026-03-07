@@ -123,8 +123,8 @@ Isso sobe infraestrutura, API, worker, aplica migrações, seed e executa smoke 
 | Email | Senha | Tenant | Role | Permissões |
 |-------|-------|--------|------|------------|
 | admin@local | admin123 | * (global) | admin | Todas |
-| ops@demo | ops123 | tenant_demo | ops | orders:rw, inventory:rw, profile:r |
-| sales@demo | sales123 | tenant_demo | sales | orders:r, inventory:r, profile:r |
+| ops@demo.example.com | ops123 | tenant_demo | ops | orders:rw, inventory:rw, products:rw, profile:r |
+| sales@demo.example.com | sales123 | tenant_demo | sales | orders:r, inventory:r, products:r, profile:r |
 
 ---
 
@@ -287,7 +287,7 @@ npm run test
 
 1. **Subir:** `./scripts/up.sh && ./scripts/migrate.sh && ./scripts/seed.sh`
 2. **Swagger:** http://localhost:3000/docs
-3. **Auth:** `POST /v1/auth/token` com `{"email":"ops@demo","password":"ops123","tenantId":"tenant_demo"}`
+3. **Auth:** `POST /v1/auth/token` com `{"email":"ops@demo.example.com","password":"ops123","tenantId":"tenant_demo"}`
 4. **Criar pedido:** `POST /v1/orders` com `Idempotency-Key: demo-$(date +%s)` e body `{"customerId":"CUST-1","items":[{"sku":"SKU-1","qty":2,"price":10.5}]}`
 5. **Aguardar worker:** ~2–3s; `GET /v1/orders/{id}` — status CREATED → RESERVED
 6. **Confirmar:** `POST /v1/orders/{id}/confirm` com `Idempotency-Key: demo-confirm-$(date +%s)`

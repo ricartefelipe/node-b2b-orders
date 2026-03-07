@@ -14,7 +14,7 @@ async function main() {
 
   const config = new DocumentBuilder()
     .setTitle('node-b2b-orders')
-    .setVersion('0.1.0')
+    .setVersion('1.0.0')
     .addBearerAuth()
     .build();
 
