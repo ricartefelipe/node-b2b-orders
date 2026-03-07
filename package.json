@@ -1,7 +1,7 @@
 {
   "name": "node-b2b-orders",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "private": false,
   "description": "NestJS + Prisma demo: B2B Orders & Inventory with outbox, saga, idempotency, RBAC/ABAC, metrics.",
   "author": "felipericarte <felipericartem@gmail.com>",
   "license": "MIT",
@@ -19,6 +19,7 @@
     "api:export": "node dist/src/scripts/export-openapi.js"
   },
   "dependencies": {
+    "@fastify/helmet": "^11.1.1",
     "@fastify/static": "^7.0.4",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.2.0",
@@ -35,11 +36,10 @@
     "fastify": "^4.26.0",
     "ioredis": "^5.3.2",
     "js-yaml": "^4.1.0",
+    "jwks-rsa": "^4.0.1",
     "opossum": "^7.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "pino": "^9.0.0",
-    "pino-pretty": "^11.0.0",
     "prisma": "^5.10.0",
     "prom-client": "^15.1.0",
     "reflect-metadata": "^0.2.1",
@@ -64,6 +64,9 @@
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "prisma": {
     "seed": "node dist/prisma/seed.js"

@@ -114,15 +114,15 @@ async function main() {
   });
 
   const ops = await prisma.user.upsert({
-    where: { email: 'ops@demo' },
+    where: { email: 'ops@demo.example.com' },
     update: { tenantId },
-    create: { email: 'ops@demo', passwordHash: opsHash, tenantId },
+    create: { email: 'ops@demo.example.com', passwordHash: opsHash, tenantId },
   });
 
   const sales = await prisma.user.upsert({
-    where: { email: 'sales@demo' },
+    where: { email: 'sales@demo.example.com' },
     update: { tenantId },
-    create: { email: 'sales@demo', passwordHash: salesHash, tenantId },
+    create: { email: 'sales@demo.example.com', passwordHash: salesHash, tenantId },
   });
 
   await prisma.userRole.upsert({
@@ -141,14 +141,15 @@ async function main() {
     create: { userId: sales.id, roleName: 'sales' },
   });
 
-  const skus = [
+  const inventoryItems = [
     { sku: 'SKU-1', availableQty: 100 },
     { sku: 'SKU-2', availableQty: 50 },
+    ...products.map(p => ({ sku: p.sku, availableQty: 30 })),
   ];
-  for (const item of skus) {
+  for (const item of inventoryItems) {
     await prisma.inventoryItem.upsert({
       where: { tenantId_sku: { tenantId, sku: item.sku } },
-      update: { availableQty: item.availableQty },
+      update: {},
       create: { tenantId, sku: item.sku, availableQty: item.availableQty, reservedQty: 0 },
     });
   }
