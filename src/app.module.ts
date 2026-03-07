@@ -10,6 +10,7 @@ import { AuthModule } from './interfaces/auth/auth.module';
 import { OrdersModule } from './interfaces/orders/orders.module';
 import { ProductsModule } from './interfaces/products/products.module';
 import { InventoryModule } from './interfaces/inventory/inventory.module';
+import { AuditHttpModule } from './interfaces/audit/audit.module';
 import { AdminModule } from './interfaces/admin/admin.module';
 import { MetricsModule } from './interfaces/metrics/metrics.module';
 
@@ -21,6 +22,7 @@ import { MetricsModule } from './interfaces/metrics/metrics.module';
     CircuitBreakerModule,
     BusinessMetricsModule,
     AuditModule,
+    AuditHttpModule,
     AuthModule,
     OrdersModule,
     ProductsModule,

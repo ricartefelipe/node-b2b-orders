@@ -31,7 +31,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('node-b2b-orders')
-    .setVersion('0.1.0')
+    .setVersion('1.0.0')
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
@@ -91,6 +91,10 @@ async function bootstrap() {
         .send({ title: 'Too Many Requests', status: 429, detail: 'rate limit exceeded' });
       return;
     }
+  });
+
+  await app.register(require('@fastify/helmet'), {
+    contentSecurityPolicy: false,
   });
 
   const port = Number(process.env.HTTP_PORT || 3000);

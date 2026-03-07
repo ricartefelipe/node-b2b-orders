@@ -1,6 +1,7 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../src/infrastructure/prisma/prisma.service';
+import { AuditService } from '../../src/shared/audit/audit.service';
 import { AbacGuard } from '../../src/shared/auth/abac.guard';
 
 const mockReflector = {
@@ -11,10 +12,12 @@ const mockPrisma = {
   policy: { findUnique: jest.fn() },
 };
 
+const mockAudit = { log: jest.fn().mockResolvedValue(undefined) };
+
 const createMockContext = (user: object | undefined): ExecutionContext => {
   return {
     switchToHttp: () => ({
-      getRequest: () => ({ user }),
+      getRequest: () => ({ user, headers: {}, method: 'GET', url: '/test', correlationId: '' }),
     }),
     getHandler: () => ({}),
     getClass: () => ({}),
@@ -28,7 +31,8 @@ describe('AbacGuard', () => {
     jest.clearAllMocks();
     guard = new AbacGuard(
       mockPrisma as unknown as PrismaService,
-      mockReflector as unknown as Reflector
+      mockReflector as unknown as Reflector,
+      mockAudit as unknown as AuditService,
     );
   });
 

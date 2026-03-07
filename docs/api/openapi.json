@@ -20,17 +20,37 @@
     }
   ],
   "tags": [
-    { "name": "Auth", "description": "Autenticação e dados do usuário" },
-    { "name": "Orders", "description": "Gerenciamento de pedidos" },
-    { "name": "Inventory", "description": "Inventário e ajustes" },
-    { "name": "Products", "description": "Catálogo de produtos" },
-    { "name": "Admin", "description": "Configuração de chaos engineering" },
-    { "name": "Health", "description": "Métricas, liveness e readiness" }
+    {
+      "name": "Auth",
+      "description": "Autenticação e dados do usuário"
+    },
+    {
+      "name": "Orders",
+      "description": "Gerenciamento de pedidos"
+    },
+    {
+      "name": "Inventory",
+      "description": "Inventário e ajustes"
+    },
+    {
+      "name": "Products",
+      "description": "Catálogo de produtos"
+    },
+    {
+      "name": "Admin",
+      "description": "Configuração de chaos engineering"
+    },
+    {
+      "name": "Health",
+      "description": "Métricas, liveness e readiness"
+    }
   ],
   "paths": {
     "/auth/token": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Emitir token de acesso",
         "operationId": "issueToken",
         "security": [],
@@ -38,7 +58,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/TokenRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
             }
           }
         },
@@ -47,17 +69,23 @@
             "description": "Token emitido",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/TokenResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
               }
             }
           },
-          "401": { "description": "Credenciais inválidas" }
+          "401": {
+            "description": "Credenciais inválidas"
+          }
         }
       }
     },
     "/me": {
       "get": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Dados do usuário autenticado",
         "operationId": "me",
         "responses": {
@@ -65,28 +93,47 @@
             "description": "Dados do usuário (payload do JWT)",
             "content": {
               "application/json": {
-                "schema": { "type": "object" }
+                "schema": {
+                  "type": "object"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/orders": {
       "post": {
-        "tags": ["Orders"],
+        "tags": [
+          "Orders"
+        ],
         "summary": "Criar pedido",
         "operationId": "createOrder",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" },
-          { "name": "Idempotency-Key", "in": "header", "schema": { "type": "string" } }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateOrderRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
             }
           }
         },
@@ -95,45 +142,89 @@
             "description": "Pedido criado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Order" }
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "get": {
-        "tags": ["Orders"],
+        "tags": [
+          "Orders"
+        ],
         "summary": "Listar pedidos (cursor pagination)",
         "operationId": "listOrders",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" },
-          { "name": "status", "in": "query", "schema": { "type": "string" } },
-          { "$ref": "#/components/parameters/cursor" },
-          { "$ref": "#/components/parameters/limit" }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/cursor"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
         ],
         "responses": {
           "200": {
             "description": "Página de pedidos",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CursorPageOrder" }
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPageOrder"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/orders/{id}": {
       "parameters": [
-        { "$ref": "#/components/parameters/XTenantId" },
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "$ref": "#/components/parameters/XTenantId"
+        },
+        {
+          "$ref": "#/components/parameters/XCorrelationId"
+        },
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
       "get": {
-        "tags": ["Orders"],
+        "tags": [
+          "Orders"
+        ],
         "summary": "Buscar pedido por ID",
         "operationId": "getOrder",
         "responses": {
@@ -141,50 +232,102 @@
             "description": "Pedido encontrado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Order" }
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
     "/orders/{id}/confirm": {
       "parameters": [
-        { "$ref": "#/components/parameters/XTenantId" },
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "$ref": "#/components/parameters/XTenantId"
+        },
+        {
+          "$ref": "#/components/parameters/XCorrelationId"
+        },
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
       "post": {
-        "tags": ["Orders"],
+        "tags": [
+          "Orders"
+        ],
         "summary": "Confirmar pedido",
         "operationId": "confirmOrder",
         "parameters": [
-          { "name": "Idempotency-Key", "in": "header", "schema": { "type": "string" } }
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Pedido confirmado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Order" }
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
     "/orders/{id}/cancel": {
       "parameters": [
-        { "$ref": "#/components/parameters/XTenantId" },
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "$ref": "#/components/parameters/XTenantId"
+        },
+        {
+          "$ref": "#/components/parameters/XCorrelationId"
+        },
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
       "post": {
-        "tags": ["Orders"],
+        "tags": [
+          "Orders"
+        ],
         "summary": "Cancelar pedido",
         "operationId": "cancelOrder",
         "responses": {
@@ -192,55 +335,102 @@
             "description": "Pedido cancelado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Order" }
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
     "/inventory": {
       "get": {
-        "tags": ["Inventory"],
+        "tags": [
+          "Inventory"
+        ],
         "summary": "Listar inventário (cursor pagination)",
         "operationId": "listInventory",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" },
-          { "name": "sku", "in": "query", "schema": { "type": "string" } },
-          { "$ref": "#/components/parameters/cursor" },
-          { "$ref": "#/components/parameters/limit" }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "name": "sku",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/cursor"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
         ],
         "responses": {
           "200": {
             "description": "Página de registros de inventário",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CursorPageInventory" }
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPageInventory"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/inventory/adjustments": {
       "post": {
-        "tags": ["Inventory"],
+        "tags": [
+          "Inventory"
+        ],
         "summary": "Criar ajuste de inventário",
         "operationId": "createAdjustment",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" },
-          { "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string" } }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateAdjustment" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdjustment"
+              }
             }
           }
         },
@@ -249,79 +439,168 @@
             "description": "Ajuste criado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Adjustment" }
+                "schema": {
+                  "$ref": "#/components/schemas/Adjustment"
+                }
               }
             }
           },
-          "400": { "description": "Idempotency-Key obrigatório" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "400": {
+            "description": "Idempotency-Key obrigatório"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "get": {
-        "tags": ["Inventory"],
+        "tags": [
+          "Inventory"
+        ],
         "summary": "Listar ajustes de inventário",
         "operationId": "listAdjustments",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" },
-          { "name": "sku", "in": "query", "schema": { "type": "string" } },
-          { "$ref": "#/components/parameters/cursor" },
-          { "$ref": "#/components/parameters/limit" }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "name": "sku",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/cursor"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
         ],
         "responses": {
           "200": {
             "description": "Página de ajustes",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CursorPageAdjustment" }
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPageAdjustment"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/products": {
       "get": {
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "summary": "Listar produtos com filtros (cursor pagination)",
         "operationId": "listProducts",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" },
-          { "name": "category", "in": "query", "schema": { "type": "string" } },
-          { "name": "minPrice", "in": "query", "schema": { "type": "number", "minimum": 0 } },
-          { "name": "maxPrice", "in": "query", "schema": { "type": "number", "minimum": 0 } },
-          { "name": "inStock", "in": "query", "schema": { "type": "boolean" } },
-          { "name": "searchTerm", "in": "query", "schema": { "type": "string" } },
-          { "$ref": "#/components/parameters/cursor" },
-          { "$ref": "#/components/parameters/limit" }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minPrice",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "inStock",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "searchTerm",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/cursor"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
         ],
         "responses": {
           "200": {
             "description": "Página de produtos",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CursorPageProduct" }
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPageProduct"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "post": {
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "summary": "Criar produto",
         "operationId": "createProduct",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateProduct" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateProduct"
+              }
             }
           }
         },
@@ -330,24 +609,49 @@
             "description": "Produto criado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Product" }
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
               }
             }
           },
-          "400": { "description": "Dados inválidos" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "409": { "description": "SKU duplicado para o tenant" }
+          "400": {
+            "description": "Dados inválidos"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "description": "SKU duplicado para o tenant"
+          }
         }
       }
     },
     "/products/{id}": {
       "parameters": [
-        { "$ref": "#/components/parameters/XTenantId" },
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "$ref": "#/components/parameters/XTenantId"
+        },
+        {
+          "$ref": "#/components/parameters/XCorrelationId"
+        },
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
       "get": {
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "summary": "Buscar produto por ID",
         "operationId": "getProduct",
         "responses": {
@@ -355,24 +659,36 @@
             "description": "Produto encontrado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Product" }
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       },
       "patch": {
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "summary": "Atualizar produto",
         "operationId": "updateProduct",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateProduct" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProduct"
+              }
             }
           }
         },
@@ -381,17 +697,27 @@
             "description": "Produto atualizado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Product" }
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       },
       "delete": {
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "summary": "Soft-delete de produto",
         "operationId": "deleteProduct",
         "responses": {
@@ -399,93 +725,152 @@
             "description": "Produto desativado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Product" }
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
     "/products/metadata/categories": {
       "get": {
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "summary": "Listar categorias únicas dos produtos do tenant",
         "operationId": "getProductCategories",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Lista de categorias",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "type": "string" } }
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/products/metadata/price-range": {
       "get": {
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "summary": "Faixa de preço (min/max) dos produtos do tenant",
         "operationId": "getProductPriceRange",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Faixa de preço",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PriceRange" }
+                "schema": {
+                  "$ref": "#/components/schemas/PriceRange"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/admin/chaos": {
       "get": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Obter configuração de chaos engineering",
         "operationId": "getChaosConfig",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Configuração atual",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ChaosConfig" }
+                "schema": {
+                  "$ref": "#/components/schemas/ChaosConfig"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "put": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Atualizar configuração de chaos engineering",
         "operationId": "setChaosConfig",
         "parameters": [
-          { "$ref": "#/components/parameters/XTenantId" }
+          {
+            "$ref": "#/components/parameters/XTenantId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ChaosConfig" }
+              "schema": {
+                "$ref": "#/components/schemas/ChaosConfig"
+              }
             }
           }
         },
@@ -494,18 +879,26 @@
             "description": "Configuração atualizada",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ChaosConfig" }
+                "schema": {
+                  "$ref": "#/components/schemas/ChaosConfig"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/healthz": {
       "get": {
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "summary": "Liveness probe",
         "operationId": "healthz",
         "security": [],
@@ -517,7 +910,10 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": { "type": "string", "example": "ok" }
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
                   }
                 }
               }
@@ -528,7 +924,9 @@
     },
     "/readyz": {
       "get": {
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "summary": "Readiness probe (DB, Redis)",
         "operationId": "readyz",
         "security": [],
@@ -537,7 +935,9 @@
             "description": "Status das dependências (status=ok ou status=fail)",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ReadinessResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
               }
             }
           }
@@ -546,7 +946,9 @@
     },
     "/metrics": {
       "get": {
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "summary": "Métricas Prometheus",
         "operationId": "metrics",
         "security": [],
@@ -555,7 +957,9 @@
             "description": "Métricas no formato Prometheus",
             "content": {
               "text/plain": {
-                "schema": { "type": "string" }
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -576,78 +980,168 @@
         "name": "X-Tenant-Id",
         "in": "header",
         "required": true,
-        "schema": { "type": "string", "format": "uuid" }
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "XCorrelationId": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": false,
+        "description": "ID de correlação para distributed tracing. Gerado automaticamente se ausente.",
+        "schema": {
+          "type": "string"
+        }
       },
       "cursor": {
         "name": "cursor",
         "in": "query",
         "description": "Cursor opaco da página anterior (base64url)",
-        "schema": { "type": "string" }
+        "schema": {
+          "type": "string"
+        }
       },
       "limit": {
         "name": "limit",
         "in": "query",
-        "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 100 }
+        "schema": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100
+        }
       }
     },
     "responses": {
-      "Unauthorized": { "description": "Não autenticado" },
-      "Forbidden": { "description": "Sem permissão" },
-      "NotFound": { "description": "Recurso não encontrado" }
+      "Unauthorized": {
+        "description": "Não autenticado"
+      },
+      "Forbidden": {
+        "description": "Sem permissão"
+      },
+      "NotFound": {
+        "description": "Recurso não encontrado"
+      }
     },
     "schemas": {
       "TokenRequest": {
         "type": "object",
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "password": { "type": "string", "minLength": 3 },
-          "tenantId": { "type": "string" }
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 3
+          },
+          "tenantId": {
+            "type": "string"
+          }
         },
-        "required": ["email", "password"]
+        "required": [
+          "email",
+          "password"
+        ]
       },
       "TokenResponse": {
         "type": "object",
         "properties": {
-          "access_token": { "type": "string" },
-          "token_type": { "type": "string", "example": "Bearer" },
-          "expires_in": { "type": "integer" }
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer"
+          }
         },
-        "required": ["access_token", "token_type", "expires_in"]
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in"
+        ]
       },
       "OrderItem": {
         "type": "object",
         "properties": {
-          "sku": { "type": "string" },
-          "qty": { "type": "integer", "minimum": 1 },
-          "price": { "type": "number", "minimum": 0 }
+          "sku": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0
+          }
         },
-        "required": ["sku", "qty", "price"]
+        "required": [
+          "sku",
+          "qty",
+          "price"
+        ]
       },
       "CreateOrderRequest": {
         "type": "object",
         "properties": {
-          "customerId": { "type": "string" },
+          "customerId": {
+            "type": "string"
+          },
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/OrderItem" }
+            "items": {
+              "$ref": "#/components/schemas/OrderItem"
+            }
           }
         },
-        "required": ["customerId", "items"]
+        "required": [
+          "customerId",
+          "items"
+        ]
       },
       "Order": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "tenantId": { "type": "string" },
-          "customerId": { "type": "string" },
-          "status": { "type": "string", "enum": ["PENDING", "CONFIRMED", "CANCELLED"] },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "CANCELLED"
+            ]
+          },
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/OrderItem" }
+            "items": {
+              "$ref": "#/components/schemas/OrderItem"
+            }
           },
-          "totalAmount": { "type": "number" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "totalAmount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "CursorPageOrder": {
@@ -655,22 +1149,47 @@
         "properties": {
           "data": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Order" }
+            "items": {
+              "$ref": "#/components/schemas/Order"
+            }
           },
-          "nextCursor": { "type": "string", "nullable": true },
-          "hasMore": { "type": "boolean" }
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
         },
-        "required": ["data", "hasMore"]
+        "required": [
+          "data",
+          "hasMore"
+        ]
       },
       "Inventory": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "tenantId": { "type": "string" },
-          "sku": { "type": "string" },
-          "qty": { "type": "integer" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "CursorPageInventory": {
@@ -678,34 +1197,86 @@
         "properties": {
           "data": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Inventory" }
+            "items": {
+              "$ref": "#/components/schemas/Inventory"
+            }
           },
-          "nextCursor": { "type": "string", "nullable": true },
-          "hasMore": { "type": "boolean" }
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
         },
-        "required": ["data", "hasMore"]
+        "required": [
+          "data",
+          "hasMore"
+        ]
       },
       "CreateAdjustment": {
         "type": "object",
         "properties": {
-          "sku": { "type": "string" },
-          "type": { "type": "string", "enum": ["IN", "OUT", "ADJUSTMENT"] },
-          "qty": { "type": "integer", "minimum": 1 },
-          "reason": { "type": "string" }
+          "sku": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "IN",
+              "OUT",
+              "ADJUSTMENT"
+            ]
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string"
+          }
         },
-        "required": ["sku", "type", "qty", "reason"]
+        "required": [
+          "sku",
+          "type",
+          "qty",
+          "reason"
+        ]
       },
       "Adjustment": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "tenantId": { "type": "string" },
-          "sku": { "type": "string" },
-          "type": { "type": "string", "enum": ["IN", "OUT", "ADJUSTMENT"] },
-          "qty": { "type": "integer" },
-          "reason": { "type": "string" },
-          "actorSub": { "type": "string" },
-          "createdAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "IN",
+              "OUT",
+              "ADJUSTMENT"
+            ]
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "actorSub": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "CursorPageAdjustment": {
@@ -713,58 +1284,152 @@
         "properties": {
           "data": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Adjustment" }
+            "items": {
+              "$ref": "#/components/schemas/Adjustment"
+            }
           },
-          "nextCursor": { "type": "string", "nullable": true },
-          "hasMore": { "type": "boolean" }
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
         },
-        "required": ["data", "hasMore"]
+        "required": [
+          "data",
+          "hasMore"
+        ]
       },
       "Product": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "tenantId": { "type": "string" },
-          "sku": { "type": "string" },
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-          "price": { "type": "number", "format": "decimal" },
-          "currency": { "type": "string", "example": "BRL" },
-          "category": { "type": "string" },
-          "imageUrl": { "type": "string" },
-          "inStock": { "type": "boolean" },
-          "rating": { "type": "number", "format": "decimal" },
-          "reviewCount": { "type": "integer" },
-          "active": { "type": "boolean" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "currency": {
+            "type": "string",
+            "example": "BRL"
+          },
+          "category": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "inStock": {
+            "type": "boolean"
+          },
+          "rating": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "reviewCount": {
+            "type": "integer"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
-        "required": ["id", "tenantId", "sku", "name", "price", "currency", "inStock", "active", "createdAt", "updatedAt"]
+        "required": [
+          "id",
+          "tenantId",
+          "sku",
+          "name",
+          "price",
+          "currency",
+          "inStock",
+          "active",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "CreateProduct": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "sku": { "type": "string" },
-          "price": { "type": "number", "minimum": 0 },
-          "description": { "type": "string" },
-          "category": { "type": "string" },
-          "imageUrl": { "type": "string" },
-          "currency": { "type": "string", "default": "BRL" }
+          "name": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "default": "BRL"
+          }
         },
-        "required": ["name", "sku", "price"]
+        "required": [
+          "name",
+          "sku",
+          "price"
+        ]
       },
       "UpdateProduct": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "sku": { "type": "string" },
-          "price": { "type": "number", "minimum": 0 },
-          "description": { "type": "string" },
-          "category": { "type": "string" },
-          "imageUrl": { "type": "string" },
-          "currency": { "type": "string" },
-          "inStock": { "type": "boolean" }
+          "name": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "inStock": {
+            "type": "boolean"
+          }
         }
       },
       "CursorPageProduct": {
@@ -772,36 +1437,76 @@
         "properties": {
           "data": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Product" }
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
           },
-          "nextCursor": { "type": "string", "nullable": true },
-          "hasMore": { "type": "boolean" }
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
         },
-        "required": ["data", "hasMore"]
+        "required": [
+          "data",
+          "hasMore"
+        ]
       },
       "PriceRange": {
         "type": "object",
         "properties": {
-          "min": { "type": "number" },
-          "max": { "type": "number" }
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          }
         },
-        "required": ["min", "max"]
+        "required": [
+          "min",
+          "max"
+        ]
       },
       "ChaosConfig": {
         "type": "object",
         "properties": {
-          "enabled": { "type": "boolean" },
-          "failPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
-          "latencyMs": { "type": "number", "minimum": 0 }
+          "enabled": {
+            "type": "boolean"
+          },
+          "failPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "latencyMs": {
+            "type": "number",
+            "minimum": 0
+          }
         },
-        "required": ["enabled", "failPercent", "latencyMs"]
+        "required": [
+          "enabled",
+          "failPercent",
+          "latencyMs"
+        ]
       },
       "ReadinessResponse": {
         "type": "object",
         "properties": {
-          "status": { "type": "string", "enum": ["ok", "fail"] },
-          "component": { "type": "string" },
-          "error": { "type": "string" }
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "fail"
+            ]
+          },
+          "component": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
         }
       }
     }

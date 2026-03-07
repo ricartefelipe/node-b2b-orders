@@ -46,7 +46,6 @@ export class AuthService {
     const jti = `${user.id}.${now}`;
 
     const payload = {
-      iss: process.env.JWT_ISSUER || 'local-auth',
       sub: email,
       tid,
       roles,
