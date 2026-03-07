@@ -33,11 +33,25 @@ export class AuditService {
 
   async query(
     tenantId: string,
-    opts: { action?: string; target?: string; limit?: number; offset?: number }
+    opts: {
+      action?: string;
+      target?: string;
+      startDate?: Date;
+      endDate?: Date;
+      limit?: number;
+      offset?: number;
+    },
   ) {
     const where: Record<string, unknown> = { tenantId };
     if (opts.action) where.action = opts.action;
     if (opts.target) where.target = opts.target;
+
+    if (opts.startDate || opts.endDate) {
+      const createdAt: Record<string, Date> = {};
+      if (opts.startDate) createdAt.gte = opts.startDate;
+      if (opts.endDate) createdAt.lte = opts.endDate;
+      where.createdAt = createdAt;
+    }
 
     return this.prisma.auditLog.findMany({
       where,

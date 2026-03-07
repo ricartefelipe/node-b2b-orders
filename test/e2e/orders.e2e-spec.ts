@@ -21,7 +21,7 @@ describe('Orders (e2e)', () => {
       .set(authHeaders(ctx))
       .send({
         customerId: 'CUST-E2E',
-        items: [{ sku: 'SKU-001', qty: 2, price: 25.0 }],
+        items: [{ sku: 'SKU-1', qty: 2, price: 25.0 }],
       });
 
     expect(res.status).toBe(400);
@@ -33,7 +33,7 @@ describe('Orders (e2e)', () => {
       .set(authHeaders(ctx, { 'Idempotency-Key': idempotencyKey }))
       .send({
         customerId: 'CUST-E2E',
-        items: [{ sku: 'SKU-001', qty: 2, price: 25.0 }],
+        items: [{ sku: 'SKU-1', qty: 2, price: 25.0 }],
       });
 
     expect(res.status).toBe(201);
@@ -48,7 +48,7 @@ describe('Orders (e2e)', () => {
       .set(authHeaders(ctx, { 'Idempotency-Key': idempotencyKey }))
       .send({
         customerId: 'CUST-E2E',
-        items: [{ sku: 'SKU-001', qty: 2, price: 25.0 }],
+        items: [{ sku: 'SKU-1', qty: 2, price: 25.0 }],
       });
 
     expect(res.status).toBe(201);
