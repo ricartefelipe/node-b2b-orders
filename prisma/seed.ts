@@ -141,14 +141,15 @@ async function main() {
     create: { userId: sales.id, roleName: 'sales' },
   });
 
-  const skus = [
+  const inventoryItems = [
     { sku: 'SKU-1', availableQty: 100 },
     { sku: 'SKU-2', availableQty: 50 },
+    ...products.map(p => ({ sku: p.sku, availableQty: 30 })),
   ];
-  for (const item of skus) {
+  for (const item of inventoryItems) {
     await prisma.inventoryItem.upsert({
       where: { tenantId_sku: { tenantId, sku: item.sku } },
-      update: { availableQty: item.availableQty },
+      update: {},
       create: { tenantId, sku: item.sku, availableQty: item.availableQty, reservedQty: 0 },
     });
   }
