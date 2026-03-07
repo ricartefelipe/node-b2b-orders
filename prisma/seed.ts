@@ -114,15 +114,15 @@ async function main() {
   });
 
   const ops = await prisma.user.upsert({
-    where: { email: 'ops@demo' },
+    where: { email: 'ops@demo.example.com' },
     update: { tenantId },
-    create: { email: 'ops@demo', passwordHash: opsHash, tenantId },
+    create: { email: 'ops@demo.example.com', passwordHash: opsHash, tenantId },
   });
 
   const sales = await prisma.user.upsert({
-    where: { email: 'sales@demo' },
+    where: { email: 'sales@demo.example.com' },
     update: { tenantId },
-    create: { email: 'sales@demo', passwordHash: salesHash, tenantId },
+    create: { email: 'sales@demo.example.com', passwordHash: salesHash, tenantId },
   });
 
   await prisma.userRole.upsert({

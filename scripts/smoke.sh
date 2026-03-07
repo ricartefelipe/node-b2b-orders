@@ -4,11 +4,16 @@ cd "$(dirname "$0")/.."
 
 [ -f .env ] && set -a && source .env && set +a
 
-./scripts/up.sh
-./scripts/migrate.sh
-./scripts/seed.sh
+API_BASE="${API_BASE:-http://localhost:3000}"
 
-API_BASE="http://localhost:3000"
+# Se SKIP_UP=1 ou a API já estiver no ar, não subir de novo (evita conflito quando a suite já foi levantada por rodar-local.sh)
+if [ "${SKIP_UP:-0}" != "1" ]; then
+  if ! curl -sf "$API_BASE/v1/healthz" >/dev/null 2>&1; then
+    ./scripts/up.sh
+    ./scripts/migrate.sh
+    ./scripts/seed.sh
+  fi
+fi
 TENANT="tenant_demo"
 PASS=0
 FAIL=0
@@ -43,9 +48,9 @@ assert_eq "$READYZ" "ok" "readyz"
 echo "[2] Get token"
 TOKEN_JSON=$(curl -sS -X POST "$API_BASE/v1/auth/token" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"ops@demo","password":"ops123","tenantId":"tenant_demo"}')
+  -d '{"email":"ops@demo.example.com","password":"ops123","tenantId":"tenant_demo"}')
 TOKEN=$(json_get "$TOKEN_JSON" "access_token")
-assert_eq "$(echo "$TOKEN" | wc -c | tr -d ' ')" "$(echo "$TOKEN" | wc -c | tr -d ' ')" "token issued"
+assert_eq "$(test -n "$TOKEN" && echo ok || echo fail)" "ok" "token issued"
 
 # --- Create order ---
 echo "[3] Create order"
@@ -75,14 +80,15 @@ CONFIRM_JSON=$(curl -sS -X POST "$API_BASE/v1/orders/$ORDER_ID/confirm" \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant-Id: $TENANT" \
   -H "Idempotency-Key: smoke-confirm-$(date +%s)" \
-  -H "Content-Type: application/json")
+  -H "Content-Type: application/json" \
+  -d '{}')
 CONFIRM_STATUS=$(json_get "$CONFIRM_JSON" "status")
 assert_eq "$CONFIRM_STATUS" "CONFIRMED" "order confirmed"
 
 # --- Simulate payment.settled (order->PAID) ---
 echo "[5b] Simulate payment.settled -> order PAID"
-# Script runs on host, so use localhost:5673 (mapped port). Override via RABBITMQ_HOST_URL.
-RABBIT_HOST="${RABBITMQ_HOST_URL:-amqp://guest:guest@localhost:5673}"
+# Script runs on host, so use localhost port for RabbitMQ. Suite uses fluxe-rabbitmq on 5675.
+RABBIT_HOST="${RABBITMQ_HOST_URL:-amqp://guest:guest@localhost:5675}"
 RABBITMQ_URL="$RABBIT_HOST" node scripts/publish-payment-settled.js "$ORDER_ID" "$TENANT" 2>/dev/null || true
 sleep 2
 ORDER_PAID=$(curl -sS "$API_BASE/v1/orders/$ORDER_ID" \
@@ -103,7 +109,7 @@ echo "[7] List inventory"
 INV_JSON=$(curl -sS "$API_BASE/v1/inventory" \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant-Id: $TENANT")
-INV_LEN=$(echo "$INV_JSON" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(Array.isArray(r)?r.length:r.data.length)})")
+INV_LEN=$(echo "$INV_JSON" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);const n=Array.isArray(r)?r.length:(r&&r.data?r.data.length:0);console.log(n!=null?n:0)})")
 assert_eq "$(test "$INV_LEN" -ge 1 && echo ok || echo fail)" "ok" "inventory has items"
 
 # --- Inventory adjustment ---
@@ -121,7 +127,7 @@ echo "[9] List inventory adjustments"
 ADJS_JSON=$(curl -sS "$API_BASE/v1/inventory/adjustments?sku=SKU-1" \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant-Id: $TENANT")
-ADJS_LEN=$(echo "$ADJS_JSON" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(Array.isArray(r)?r.length:r.data.length)})")
+ADJS_LEN=$(echo "$ADJS_JSON" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);const n=Array.isArray(r)?r.length:(r&&r.data?r.data.length:0);console.log(n!=null?n:0)})")
 assert_eq "$(test "$ADJS_LEN" -ge 1 && echo ok || echo fail)" "ok" "adjustments listed"
 
 # --- Metrics ---
@@ -134,7 +140,7 @@ assert_eq "$(test "$HAS_ORDERS_CREATED" -ge 1 && echo ok || echo fail)" "ok" "bu
 echo "[11] Sales user: read OK, write blocked"
 SALES_TOKEN_JSON=$(curl -sS -X POST "$API_BASE/v1/auth/token" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"sales@demo","password":"sales123","tenantId":"tenant_demo"}')
+  -d '{"email":"sales@demo.example.com","password":"sales123","tenantId":"tenant_demo"}')
 SALES_TOKEN=$(json_get "$SALES_TOKEN_JSON" "access_token")
 
 SALES_LIST_CODE=$(curl -sS -o /dev/null -w "%{http_code}" "$API_BASE/v1/orders" \
