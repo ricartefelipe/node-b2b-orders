@@ -72,6 +72,14 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://app:app@localhost:5432/orders_test
+
       - name: E2E tests
         run: npm run test:e2e
         env:
