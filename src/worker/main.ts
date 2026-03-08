@@ -342,7 +342,7 @@ let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 function writeHeartbeat() {
   try {
     fs.writeFileSync(HEARTBEAT_FILE, Date.now().toString(), 'utf8');
-  } catch {}
+  } catch { /* ignore */ }
 }
 
 async function gracefulShutdown(signal: string) {
@@ -351,23 +351,23 @@ async function gracefulShutdown(signal: string) {
   log('worker.shutting_down', { signal });
 
   if (heartbeatInterval) clearInterval(heartbeatInterval);
-  try { fs.unlinkSync(HEARTBEAT_FILE); } catch {}
+  try { fs.unlinkSync(HEARTBEAT_FILE); } catch { /* ignore */ }
 
   for (const ch of activeChannels) {
-    try { await ch.close(); } catch {}
+    try { await ch.close(); } catch { /* ignore */ }
   }
   activeChannels = [];
 
   if (activeConnection) {
-    try { await activeConnection.close(); } catch {}
+    try { await activeConnection.close(); } catch { /* ignore */ }
     activeConnection = null;
   }
   if (activePrisma) {
-    try { await activePrisma.$disconnect(); } catch {}
+    try { await activePrisma.$disconnect(); } catch { /* ignore */ }
     activePrisma = null;
   }
   if (activeRedis) {
-    try { await activeRedis.quit(); } catch {}
+    try { await activeRedis.quit(); } catch { /* ignore */ }
     activeRedis = null;
   }
 
