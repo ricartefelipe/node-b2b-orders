@@ -108,6 +108,8 @@ model Order {
 
   tenant Tenant     @relation(fields: [tenantId], references: [id])
   items  OrderItem[]
+
+  @@index([tenantId, createdAt])
 }
 
 model OrderItem {
