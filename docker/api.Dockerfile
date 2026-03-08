@@ -7,13 +7,14 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY . .
-RUN npx prisma generate
-RUN npm run build
+RUN for i in 1 2 3; do npx prisma generate && break || sleep 15; done
+RUN for i in 1 2 3; do npm run build && break || sleep 15; done
 
 # ---
 FROM node:20-alpine AS runtime
 
-RUN apk add --no-cache curl openssl
+# Resiliente a falhas de DNS/rede durante o build
+RUN for i in 1 2 3; do apk update && apk add --no-cache curl openssl && break || sleep 10; done
 
 WORKDIR /app
 
