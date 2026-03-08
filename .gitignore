@@ -9,3 +9,6 @@ coverage/
 .idea/
 *.iml
 .vscode/
+
+# Local dev overrides
+.local-prometheus/
