@@ -141,19 +141,6 @@ async function main() {
     create: { userId: sales.id, roleName: 'sales' },
   });
 
-  const inventoryItems = [
-    { sku: 'SKU-1', availableQty: 100 },
-    { sku: 'SKU-2', availableQty: 50 },
-    ...products.map(p => ({ sku: p.sku, availableQty: 30 })),
-  ];
-  for (const item of inventoryItems) {
-    await prisma.inventoryItem.upsert({
-      where: { tenantId_sku: { tenantId, sku: item.sku } },
-      update: {},
-      create: { tenantId, sku: item.sku, availableQty: item.availableQty, reservedQty: 0 },
-    });
-  }
-
   const products = [
     { sku: 'ELET-001', name: 'Notebook Corporativo 15"', price: 4899.90, category: 'Eletrônicos', description: 'Notebook profissional com 16GB RAM, SSD 512GB, tela IPS Full HD', rating: 4.5, reviewCount: 128, imageUrl: 'https://picsum.photos/seed/elet001/400/300', currency: 'BRL' },
     { sku: 'ELET-002', name: 'Monitor Ultrawide 34"', price: 3299.00, category: 'Eletrônicos', description: 'Monitor curvo 34 polegadas UWQHD, ideal para produtividade', rating: 4.7, reviewCount: 85, imageUrl: 'https://picsum.photos/seed/elet002/400/300', currency: 'BRL' },
@@ -198,6 +185,19 @@ async function main() {
         rating: p.rating,
         reviewCount: p.reviewCount,
       },
+    });
+  }
+
+  const inventoryItems = [
+    { sku: 'SKU-1', availableQty: 100 },
+    { sku: 'SKU-2', availableQty: 50 },
+    ...products.map(p => ({ sku: p.sku, availableQty: 30 })),
+  ];
+  for (const item of inventoryItems) {
+    await prisma.inventoryItem.upsert({
+      where: { tenantId_sku: { tenantId, sku: item.sku } },
+      update: {},
+      create: { tenantId, sku: item.sku, availableQty: item.availableQty, reservedQty: 0 },
     });
   }
 
