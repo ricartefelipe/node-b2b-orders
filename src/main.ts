@@ -1,8 +1,10 @@
+import './shared/tracing/tracing';
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 import { collectDefaultMetrics } from 'prom-client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -66,6 +68,13 @@ async function bootstrap() {
 
     const tenantId = req.headers['x-tenant-id'] || '';
     req.tenantId = tenantId;
+
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan) {
+      activeSpan.setAttribute('correlation.id', cid);
+      if (tenantId) activeSpan.setAttribute('tenant.id', tenantId);
+      reply.header('x-trace-id', activeSpan.spanContext().traceId);
+    }
 
     const chaos = await redis.getChaosConfig(tenantId || 'public');
     if (chaos.enabled) {
