@@ -10,6 +10,7 @@ const mockTx = {
   inventoryItem: { findUnique: jest.fn(), update: jest.fn() },
   order: { update: jest.fn() },
   outboxEvent: { create: jest.fn() },
+  product: { updateMany: jest.fn() },
 };
 
 const mockPrisma = {
@@ -70,6 +71,7 @@ describe('Worker handlers', () => {
       mockTx.inventoryItem.findUnique.mockResolvedValue({
         availableQty: 10,
       });
+      mockTx.inventoryItem.update.mockResolvedValue({ availableQty: 8 });
       await handleOrderMessage(
         mockPrisma as unknown as PrismaClient,
         'order.created',
@@ -110,6 +112,7 @@ describe('Worker handlers', () => {
         status: 'RESERVED',
         items: [{ sku: 'SKU-1', qty: 3 }],
       });
+      mockTx.inventoryItem.update.mockResolvedValue({ availableQty: 3 });
       await handleOrderMessage(
         mockPrisma as unknown as PrismaClient,
         'order.cancelled',
