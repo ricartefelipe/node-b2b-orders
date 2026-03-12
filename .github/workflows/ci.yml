@@ -87,10 +87,12 @@ jobs:
 
       - name: E2E tests
         run: npm run test:e2e
+        timeout-minutes: 5
         env:
           DATABASE_URL: postgresql://app:app@localhost:5432/orders_test
           REDIS_URL: redis://localhost:6379
           JWT_SECRET: e2e-test-secret-key-do-not-use-in-production
+          RABBITMQ_URL: amqp://guest:guest@localhost:5672
 
   security:
     runs-on: ubuntu-latest
