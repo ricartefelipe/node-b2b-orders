@@ -79,11 +79,16 @@ export class OrdersController {
 
   @Post(':id/cancel')
   @Permission('orders:write')
-  async cancel(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
+  async cancel(
+    @Req() req: any,
+    @Headers('idempotency-key') idem: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';
-    return this.orders.cancelOrder(tenantId, correlationId, id, actorSub);
+    return this.orders.cancelOrder(tenantId, correlationId, idem, id, actorSub);
   }
 
   @Get(':id')
