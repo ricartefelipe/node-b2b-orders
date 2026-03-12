@@ -12,6 +12,9 @@ import { log } from '../shared/logging/logger';
 
 const HEARTBEAT_FILE = path.join(process.env.HEARTBEAT_DIR || '/tmp', 'worker-heartbeat');
 
+const AUDIT_RETENTION_DAYS = Number(process.env.AUDIT_RETENTION_DAYS || '90');
+const AUDIT_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // daily
+
 const EXCHANGE = process.env.ORDERS_EXCHANGE || 'orders.x';
 const QUEUE = process.env.ORDERS_QUEUE || 'orders.events';
 const DLQ = process.env.ORDERS_DLQ || 'orders.dlq';
@@ -168,6 +171,22 @@ async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: 
     }
 
     await sleep(1_000);
+  }
+}
+
+export async function cleanupOldAuditLogs(prisma: PrismaClient): Promise<void> {
+  if (AUDIT_RETENTION_DAYS <= 0) return;
+
+  const cutoff = new Date(Date.now() - AUDIT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  try {
+    const result = await prisma.auditLog.deleteMany({
+      where: { createdAt: { lt: cutoff } },
+    });
+    if (result.count > 0) {
+      log('audit.retention_cleanup', { deleted: result.count, cutoff: cutoff.toISOString() });
+    }
+  } catch (err) {
+    log('audit.retention_cleanup_failed', { error: String(err) });
   }
 }
 
@@ -358,6 +377,7 @@ let activeChannels: amqp.Channel[] = [];
 let activePrisma: PrismaClient | null = null;
 let activeRedis: Redis | null = null;
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+let auditCleanupInterval: ReturnType<typeof setInterval> | null = null;
 
 function writeHeartbeat() {
   try {
@@ -371,6 +391,7 @@ async function gracefulShutdown(signal: string) {
   log('worker.shutting_down', { signal });
 
   if (heartbeatInterval) clearInterval(heartbeatInterval);
+  if (auditCleanupInterval) clearInterval(auditCleanupInterval);
   try { fs.unlinkSync(HEARTBEAT_FILE); } catch { /* ignore */ }
 
   for (const ch of activeChannels) {
@@ -543,6 +564,14 @@ async function main() {
 
   writeHeartbeat();
   heartbeatInterval = setInterval(writeHeartbeat, 10_000);
+
+  if (AUDIT_RETENTION_DAYS > 0) {
+    cleanupOldAuditLogs(prisma).catch((e) => log('audit.retention_first_run_failed', { error: String(e) }));
+    auditCleanupInterval = setInterval(() => {
+      cleanupOldAuditLogs(prisma).catch((e) => log('audit.retention_cleanup_failed', { error: String(e) }));
+    }, AUDIT_CLEANUP_INTERVAL_MS);
+    log('audit.retention_scheduled', { retentionDays: AUDIT_RETENTION_DAYS });
+  }
 
   log('worker.started', { workerId });
 }

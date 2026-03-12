@@ -10,6 +10,7 @@ import { CursorPageQuery } from '../../shared/pagination/cursor';
 
 import { SortQueryDto } from '../../shared/sorting/sort-query.dto';
 import { CreateOrderRequestDto, ShipOrderDto } from './dto';
+import { ListOrdersQueryDto } from './list-orders-query.dto';
 import { OrdersService } from './orders.service';
 
 @ApiTags('orders')
@@ -89,7 +90,7 @@ export class OrdersController {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';
-    return this.orders.cancelOrder(tenantId, correlationId, idem, id, actorSub);
+    return this.orders.cancelOrder(tenantId, correlationId, id, actorSub);
   }
 
   @Get(':id')
@@ -105,9 +106,20 @@ export class OrdersController {
     @Req() req: any,
     @Query() page: CursorPageQuery,
     @Query() sort: SortQueryDto,
+    @Query() filters: ListOrdersQueryDto,
     @Query('status') status?: string,
   ) {
     const tenantId = req.headers['x-tenant-id'];
-    return this.orders.listOrders(tenantId, status, page.cursor, page.limit, sort.sortBy, sort.sortOrder);
+    return this.orders.listOrders(
+      tenantId,
+      status,
+      page.cursor,
+      sort.sortBy,
+      sort.sortOrder,
+      page.limit,
+      filters.q || filters.minAmount != null || filters.maxAmount != null || filters.dateFrom || filters.dateTo
+        ? { q: filters.q, minAmount: filters.minAmount, maxAmount: filters.maxAmount, dateFrom: filters.dateFrom, dateTo: filters.dateTo }
+        : undefined,
+    );
   }
 }
