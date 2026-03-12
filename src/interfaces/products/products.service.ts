@@ -7,6 +7,7 @@ import {
   encodeCursor,
   resolveLimit,
 } from '../../shared/pagination/cursor';
+import { resolveProductSort } from '../../shared/sorting/sort-query.dto';
 
 interface ProductFilters {
   category?: string;
@@ -81,6 +82,8 @@ export class ProductsService {
     filters: ProductFilters,
     cursor?: string,
     rawLimit?: number,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc',
   ): Promise<PaginatedResponse<any>> {
     const limit = resolveLimit(rawLimit);
     const where: Prisma.ProductWhereInput = { tenantId, active: true };
@@ -100,9 +103,11 @@ export class ProductsService {
       ];
     }
 
+    const orderBy = resolveProductSort(sortBy, sortOrder);
+
     const findArgs: Prisma.ProductFindManyArgs = {
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       take: limit + 1,
     };
 
