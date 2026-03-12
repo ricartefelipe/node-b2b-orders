@@ -52,7 +52,7 @@ describe('InventoryService', () => {
       ];
       mockPrisma.inventoryItem.findMany.mockResolvedValue(items);
 
-      const result = await service.list('t1', undefined, undefined, 20);
+      const result = await service.list('t1', undefined, undefined, undefined, undefined, 20);
 
       expect(result.data).toHaveLength(2);
       expect(result.hasMore).toBe(false);
@@ -61,7 +61,7 @@ describe('InventoryService', () => {
     it('should filter by SKU when provided', async () => {
       mockPrisma.inventoryItem.findMany.mockResolvedValue([]);
 
-      await service.list('t1', 'SKU-1', undefined, 20);
+      await service.list('t1', 'SKU-1', undefined, undefined, undefined, 20);
 
       expect(mockPrisma.inventoryItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -276,7 +276,7 @@ describe('InventoryService', () => {
       }));
       mockPrisma.inventoryItem.findMany.mockResolvedValue(items);
 
-      const result = await service.list('t1', undefined, undefined, 20);
+      const result = await service.list('t1', undefined, undefined, undefined, undefined, 20);
 
       expect(result.data).toHaveLength(20);
       expect(result.hasMore).toBe(true);
@@ -289,7 +289,7 @@ describe('InventoryService', () => {
       ).toString('base64url');
       mockPrisma.inventoryItem.findMany.mockResolvedValue([]);
 
-      await service.list('t1', undefined, cursor, 10);
+      await service.list('t1', undefined, cursor, undefined, undefined, 10);
 
       expect(mockPrisma.inventoryItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

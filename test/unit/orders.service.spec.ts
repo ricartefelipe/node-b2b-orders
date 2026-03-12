@@ -3,6 +3,7 @@ import { PrismaService } from '../../src/infrastructure/prisma/prisma.service';
 import { RedisService } from '../../src/infrastructure/redis/redis.service';
 import { AuditService } from '../../src/shared/audit/audit.service';
 import { BusinessMetricsService } from '../../src/shared/metrics/business-metrics.service';
+import { EventsService } from '../../src/interfaces/events/events.service';
 import { OrdersService } from '../../src/interfaces/orders/orders.service';
 
 const mockTx = {
@@ -37,6 +38,8 @@ const mockMetrics = {
   ordersCancelled: { inc: jest.fn() },
 };
 
+const mockEvents = { broadcast: jest.fn() };
+
 describe('OrdersService', () => {
   let service: OrdersService;
 
@@ -48,6 +51,7 @@ describe('OrdersService', () => {
       mockRedis as unknown as RedisService,
       mockAudit as unknown as AuditService,
       mockMetrics as unknown as BusinessMetricsService,
+      mockEvents as unknown as EventsService,
     );
   });
 
