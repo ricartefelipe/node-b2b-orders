@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: ['**/test/unit/**/*.spec.ts'],
+  testMatch: ['**/test/unit/**/*.spec.ts', '**/test/integration/**/*.spec.ts', '**/test/contract/**/*.spec.ts'],
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'clover'],
