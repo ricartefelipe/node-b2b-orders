@@ -208,10 +208,16 @@ export async function handleOrderMessage(prisma: PrismaClient, routingKey: strin
       }
 
       for (const item of order.items) {
-        await tx.inventoryItem.update({
+        const updated = await tx.inventoryItem.update({
           where: { tenantId_sku: { tenantId, sku: item.sku } },
           data: { availableQty: { decrement: item.qty }, reservedQty: { increment: item.qty } },
         });
+        if (updated.availableQty <= 0) {
+          await tx.product.updateMany({
+            where: { tenantId, sku: item.sku, active: true },
+            data: { inStock: false },
+          });
+        }
       }
 
       await tx.order.update({ where: { id: orderId }, data: { status: 'RESERVED' } });
@@ -241,10 +247,16 @@ export async function handleOrderMessage(prisma: PrismaClient, routingKey: strin
     await prisma.$transaction(async (tx) => {
       if (order.status === 'RESERVED') {
         for (const item of order.items) {
-          await tx.inventoryItem.update({
+          const updated = await tx.inventoryItem.update({
             where: { tenantId_sku: { tenantId, sku: item.sku } },
             data: { availableQty: { increment: item.qty }, reservedQty: { decrement: item.qty } },
           });
+          if (updated.availableQty > 0) {
+            await tx.product.updateMany({
+              where: { tenantId, sku: item.sku, active: true, inStock: false },
+              data: { inStock: true },
+            });
+          }
         }
       }
       await tx.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' } });
