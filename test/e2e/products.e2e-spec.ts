@@ -1,4 +1,4 @@
-import * as request from 'supertest';
+import request from 'supertest';
 import { v4 as uuid } from 'uuid';
 import { TestContext, createTestApp, authHeaders } from './helpers/test-app';
 
