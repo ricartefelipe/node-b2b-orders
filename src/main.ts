@@ -100,7 +100,7 @@ async function bootstrap() {
     }
   });
 
-  await app.register(helmet, {
+  await app.register(helmet as any, {
     contentSecurityPolicy: false,
   });
 
