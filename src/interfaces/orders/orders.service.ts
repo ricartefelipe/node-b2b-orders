@@ -150,7 +150,18 @@ export class OrdersService {
     return response;
   }
 
-  async cancelOrder(tenantId: string, correlationId: string, orderId: string, actorSub?: string) {
+  async cancelOrder(
+    tenantId: string,
+    correlationId: string,
+    idempotencyKey: string,
+    orderId: string,
+    actorSub?: string,
+  ) {
+    if (!idempotencyKey) throw new BadRequestException('Missing Idempotency-Key');
+    const idemKey = `idem:${tenantId}:cancel-order:${orderId}:${idempotencyKey}`;
+    const hit = await this.redis.idemGet(idemKey);
+    if (hit) return hit;
+
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
       include: { items: true },
@@ -186,7 +197,9 @@ export class OrdersService {
       correlationId,
     });
 
-    return { id: updated.id, status: updated.status };
+    const response = { id: updated.id, status: updated.status };
+    await this.redis.idemSet(idemKey, response, 24 * 3600);
+    return response;
   }
 
   async getOrder(tenantId: string, orderId: string) {
