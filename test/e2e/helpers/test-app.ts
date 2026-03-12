@@ -43,8 +43,9 @@ export async function createTestApp(): Promise<TestContext> {
   const jwt = module.get(JwtService);
   const token = await jwt.signAsync(TEST_JWT_PAYLOAD);
 
-  const address = await app.listen(0, '127.0.0.1');
-  const port = app.getHttpServer().address().port;
+  await app.listen(0, '127.0.0.1');
+  const addr = app.getHttpServer().address() as { port: number };
+  const port = addr.port;
   const url = `http://127.0.0.1:${port}`;
 
   return { app, url, token, tenantId: TEST_TENANT };
