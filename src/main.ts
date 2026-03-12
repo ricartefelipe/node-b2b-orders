@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { RedisService } from './infrastructure/redis/redis.service';
+import { ProblemDetailsFilter } from './shared/filters/problem-details.filter';
 
 async function bootstrap() {
   collectDefaultMetrics();
@@ -28,6 +29,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalFilters(new ProblemDetailsFilter());
 
   const config = new DocumentBuilder()
     .setTitle('node-b2b-orders')
