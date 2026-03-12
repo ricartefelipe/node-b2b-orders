@@ -21,6 +21,10 @@ interface ProductFilters {
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private tenantFilter(tenantId: string): Prisma.ProductWhereInput {
+    return tenantId === '*' ? {} : { tenantId };
+  }
+
   async create(tenantId: string, data: {
     name: string;
     sku: string;
@@ -46,7 +50,7 @@ export class ProductsService {
 
   async findOne(tenantId: string, id: string) {
     const product = await this.prisma.product.findFirst({
-      where: { id, tenantId, active: true },
+      where: { id, ...this.tenantFilter(tenantId), active: true },
     });
     if (!product) throw new NotFoundException('product not found');
     return product;
@@ -86,7 +90,7 @@ export class ProductsService {
     rawLimit?: number,
   ): Promise<PaginatedResponse<any>> {
     const limit = resolveLimit(rawLimit);
-    const where: Prisma.ProductWhereInput = { tenantId, active: true };
+    const where: Prisma.ProductWhereInput = { ...this.tenantFilter(tenantId), active: true };
 
     if (filters.category) where.category = filters.category;
     if (filters.inStock !== undefined) where.inStock = filters.inStock;
@@ -128,7 +132,7 @@ export class ProductsService {
 
   async getCategories(tenantId: string): Promise<string[]> {
     const results = await this.prisma.product.findMany({
-      where: { tenantId, active: true, category: { not: '' } },
+      where: { ...this.tenantFilter(tenantId), active: true, category: { not: '' } },
       select: { category: true },
       distinct: ['category'],
       orderBy: { category: 'asc' },
@@ -138,7 +142,7 @@ export class ProductsService {
 
   async getPriceRange(tenantId: string): Promise<{ min: number; max: number }> {
     const result = await this.prisma.product.aggregate({
-      where: { tenantId, active: true },
+      where: { ...this.tenantFilter(tenantId), active: true },
       _min: { price: true },
       _max: { price: true },
     });
