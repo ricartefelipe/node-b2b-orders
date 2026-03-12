@@ -52,47 +52,47 @@ async function main() {
     {
       permissionCode: 'orders:write',
       allowedPlans: ['pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b', 'us-east-1', 'global'],
+      allowedRegions: ['region-a', 'region-b'],
     },
     {
       permissionCode: 'orders:read',
       allowedPlans: ['free', 'pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b', 'us-east-1', 'global'],
+      allowedRegions: ['region-a', 'region-b'],
     },
     {
       permissionCode: 'inventory:read',
       allowedPlans: ['free', 'pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b', 'us-east-1', 'global'],
+      allowedRegions: ['region-a', 'region-b'],
     },
     {
       permissionCode: 'inventory:write',
       allowedPlans: ['pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b', 'us-east-1', 'global'],
+      allowedRegions: ['region-a', 'region-b'],
     },
     {
       permissionCode: 'products:read',
       allowedPlans: ['free', 'pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b', 'us-east-1', 'global'],
+      allowedRegions: ['region-a', 'region-b'],
     },
     {
       permissionCode: 'products:write',
       allowedPlans: ['pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b', 'us-east-1', 'global'],
+      allowedRegions: ['region-a', 'region-b'],
     },
     {
       permissionCode: 'admin:write',
       allowedPlans: ['enterprise'],
-      allowedRegions: ['region-a', 'region-b', 'us-east-1', 'global'],
+      allowedRegions: ['region-a', 'region-b'],
     },
     {
       permissionCode: 'profile:read',
       allowedPlans: ['free', 'pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b', 'us-east-1', 'global'],
+      allowedRegions: ['region-a', 'region-b'],
     },
     {
       permissionCode: 'analytics:read',
       allowedPlans: ['pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b', 'us-east-1', 'global'],
+      allowedRegions: ['region-a', 'region-b'],
     },
   ];
 

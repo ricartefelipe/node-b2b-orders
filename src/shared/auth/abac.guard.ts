@@ -25,9 +25,7 @@ export class AbacGuard implements CanActivate {
       await this.logDenied(req, required, 'missing_user', 'Missing user');
       throw new ForbiddenException('Missing user');
     }
-    const roles: string[] = user.roles || [];
-    if (user.tid === '*' && roles.includes('admin')) return true;
-    if (roles.includes('admin')) return true;
+    if (user.tid === '*' && (user.roles || []).includes('admin')) return true;
 
     const policy = await this.prisma.policy.findUnique({ where: { permissionCode: required } });
     if (!policy) {
@@ -46,7 +44,7 @@ export class AbacGuard implements CanActivate {
       await this.logDenied(req, required, 'plan_not_allowed', `Plan '${plan}' not allowed`);
       throw new ForbiddenException(`Plan '${plan}' not allowed`);
     }
-    if (region !== 'global' && policy.allowedRegions?.length && !policy.allowedRegions.includes(region)) {
+    if (policy.allowedRegions?.length && !policy.allowedRegions.includes(region)) {
       await this.logDenied(req, required, 'region_not_allowed', `Region '${region}' not allowed`);
       throw new ForbiddenException(`Region '${region}' not allowed`);
     }
