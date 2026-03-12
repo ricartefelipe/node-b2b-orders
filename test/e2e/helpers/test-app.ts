@@ -55,7 +55,6 @@ export function authHeaders(ctx: TestContext, extra?: Record<string, string>) {
   return {
     Authorization: `Bearer ${ctx.token}`,
     'X-Tenant-Id': ctx.tenantId,
-    'Content-Type': 'application/json',
     ...extra,
   };
 }
