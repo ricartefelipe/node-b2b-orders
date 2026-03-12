@@ -17,6 +17,9 @@ import { AdminModule } from './interfaces/admin/admin.module';
 import { MetricsModule } from './interfaces/metrics/metrics.module';
 import { AnalyticsModule } from './interfaces/analytics/analytics.module';
 import { AiModule } from './interfaces/ai/ai.module';
+import { EventsModule } from './interfaces/events/events.module';
+import { ExportModule } from './interfaces/export/export.module';
+import { ImportModule } from './interfaces/import/import.module';
 
 @Module({
   imports: [
@@ -37,6 +40,9 @@ import { AiModule } from './interfaces/ai/ai.module';
     MetricsModule,
     AnalyticsModule,
     AiModule,
+    EventsModule,
+    ExportModule,
+    ImportModule,
   ],
 })
 export class AppModule {}
