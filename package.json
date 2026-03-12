@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "format": "prettier -w .",
     "test": "jest",
-    "test:e2e": "jest --config test/jest-e2e.json",
+    "test:e2e": "jest --config test/jest-e2e.json --forceExit --testTimeout=30000",
     "prisma:generate": "prisma generate",
     "migrate": "prisma migrate deploy",
     "seed": "prisma db seed",
