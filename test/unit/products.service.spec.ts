@@ -147,7 +147,7 @@ describe('ProductsService', () => {
       ];
       mockPrisma.product.findMany.mockResolvedValue(products);
 
-      const result = await service.list('t1', {}, undefined, 20);
+      const result = await service.list('t1', {}, undefined, undefined, undefined, 20);
 
       expect(result.data).toHaveLength(2);
       expect(result.hasMore).toBe(false);
@@ -163,7 +163,7 @@ describe('ProductsService', () => {
       }));
       mockPrisma.product.findMany.mockResolvedValue(products);
 
-      const result = await service.list('t1', {}, undefined, 20);
+      const result = await service.list('t1', {}, undefined, undefined, undefined, 20);
 
       expect(result.data).toHaveLength(20);
       expect(result.hasMore).toBe(true);
@@ -173,7 +173,7 @@ describe('ProductsService', () => {
     it('should apply category filter', async () => {
       mockPrisma.product.findMany.mockResolvedValue([]);
 
-      await service.list('t1', { category: 'electronics' }, undefined, 20);
+      await service.list('t1', { category: 'electronics' }, undefined, undefined, undefined, 20);
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -185,7 +185,7 @@ describe('ProductsService', () => {
     it('should apply price range filters', async () => {
       mockPrisma.product.findMany.mockResolvedValue([]);
 
-      await service.list('t1', { minPrice: 10, maxPrice: 100 }, undefined, 20);
+      await service.list('t1', { minPrice: 10, maxPrice: 100 }, undefined, undefined, undefined, 20);
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -199,7 +199,7 @@ describe('ProductsService', () => {
     it('should apply search term filter', async () => {
       mockPrisma.product.findMany.mockResolvedValue([]);
 
-      await service.list('t1', { searchTerm: 'gadget' }, undefined, 20);
+      await service.list('t1', { searchTerm: 'gadget' }, undefined, undefined, undefined, 20);
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -230,7 +230,7 @@ describe('ProductsService', () => {
     it('should apply inStock filter', async () => {
       mockPrisma.product.findMany.mockResolvedValue([]);
 
-      await service.list('t1', { inStock: true }, undefined, 20);
+      await service.list('t1', { inStock: true }, undefined, undefined, undefined, 20);
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -245,7 +245,7 @@ describe('ProductsService', () => {
       ).toString('base64url');
       mockPrisma.product.findMany.mockResolvedValue([]);
 
-      await service.list('t1', {}, cursor, 10);
+      await service.list('t1', {}, cursor, undefined, undefined, 10);
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -258,7 +258,7 @@ describe('ProductsService', () => {
     it('should apply only minPrice when maxPrice is absent', async () => {
       mockPrisma.product.findMany.mockResolvedValue([]);
 
-      await service.list('t1', { minPrice: 50 }, undefined, 20);
+      await service.list('t1', { minPrice: 50 }, undefined, undefined, undefined, 20);
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -272,7 +272,7 @@ describe('ProductsService', () => {
     it('should apply only maxPrice when minPrice is absent', async () => {
       mockPrisma.product.findMany.mockResolvedValue([]);
 
-      await service.list('t1', { maxPrice: 200 }, undefined, 20);
+      await service.list('t1', { maxPrice: 200 }, undefined, undefined, undefined, 20);
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -289,6 +289,8 @@ describe('ProductsService', () => {
       await service.list(
         't1',
         { category: 'tools', minPrice: 10, maxPrice: 50, searchTerm: 'drill' },
+        undefined,
+        undefined,
         undefined,
         20,
       );
