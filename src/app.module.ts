@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { LoggingModule } from './shared/logging/logger.module';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { CircuitBreakerModule } from './infrastructure/circuit-breaker/circuit-breaker.module';
@@ -13,10 +14,13 @@ import { InventoryModule } from './interfaces/inventory/inventory.module';
 import { AuditHttpModule } from './interfaces/audit/audit.module';
 import { AdminModule } from './interfaces/admin/admin.module';
 import { MetricsModule } from './interfaces/metrics/metrics.module';
+import { AnalyticsModule } from './interfaces/analytics/analytics.module';
+import { AiModule } from './interfaces/ai/ai.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    LoggingModule,
     PrismaModule,
     RedisModule,
     CircuitBreakerModule,
@@ -29,6 +33,8 @@ import { MetricsModule } from './interfaces/metrics/metrics.module';
     InventoryModule,
     AdminModule,
     MetricsModule,
+    AnalyticsModule,
+    AiModule,
   ],
 })
 export class AppModule {}
