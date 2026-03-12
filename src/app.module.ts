@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { LoggingModule } from './shared/logging/logger.module';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
@@ -20,6 +21,7 @@ import { AiModule } from './interfaces/ai/ai.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     LoggingModule,
     PrismaModule,
     RedisModule,
