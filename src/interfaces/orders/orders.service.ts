@@ -8,6 +8,7 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { BusinessMetricsService } from '../../shared/metrics/business-metrics.service';
+import { EventsService } from '../events/events.service';
 import {
   PaginatedResponse,
   decodeCursor,
@@ -22,7 +23,8 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly audit: AuditService,
-    private readonly metrics: BusinessMetricsService
+    private readonly metrics: BusinessMetricsService,
+    private readonly events: EventsService,
   ) {}
 
   async createOrder(
@@ -82,6 +84,14 @@ export class OrdersService {
       items: order.items,
     };
     await this.redis.idemSet(idemKey, response, 24 * 3600);
+
+    this.events.broadcast(tenantId, 'order.updated', {
+      orderId: order.id,
+      status: order.status,
+      action: 'created',
+      customerId: order.customerId,
+    });
+
     return response;
   }
 
@@ -148,6 +158,13 @@ export class OrdersService {
 
     const response = { id: updated.id, status: updated.status };
     await this.redis.idemSet(idemKey, response, 24 * 3600);
+
+    this.events.broadcast(tenantId, 'order.updated', {
+      orderId: updated.id,
+      status: updated.status,
+      action: 'confirmed',
+    });
+
     return response;
   }
 
@@ -185,6 +202,12 @@ export class OrdersService {
       target: `Order:${orderId}`,
       detail: { orderId },
       correlationId,
+    });
+
+    this.events.broadcast(tenantId, 'order.updated', {
+      orderId: updated.id,
+      status: updated.status,
+      action: 'cancelled',
     });
 
     return { id: updated.id, status: updated.status };
@@ -247,6 +270,14 @@ export class OrdersService {
 
     const response = { id: updated.id, status: updated.status };
     await this.redis.idemSet(idemKey, response, 24 * 3600);
+
+    this.events.broadcast(tenantId, 'order.updated', {
+      orderId: updated.id,
+      status: updated.status,
+      action: 'shipped',
+      trackingCode,
+    });
+
     return response;
   }
 
@@ -300,6 +331,13 @@ export class OrdersService {
 
     const response = { id: updated.id, status: updated.status };
     await this.redis.idemSet(idemKey, response, 24 * 3600);
+
+    this.events.broadcast(tenantId, 'order.updated', {
+      orderId: updated.id,
+      status: updated.status,
+      action: 'delivered',
+    });
+
     return response;
   }
 
