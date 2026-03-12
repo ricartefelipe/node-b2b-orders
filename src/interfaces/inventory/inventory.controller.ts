@@ -30,7 +30,7 @@ export class InventoryController {
     @Query('sku') sku?: string,
   ) {
     const tenantId = req.headers['x-tenant-id'];
-    return this.inventory.list(tenantId, sku, page.cursor, page.limit, sort.sortBy, sort.sortOrder);
+    return this.inventory.list(tenantId, sku, page.cursor, sort.sortBy, sort.sortOrder, page.limit);
   }
 
   @Post('adjustments')

@@ -9,7 +9,7 @@ const baseLogger = pino({
   formatters: {
     level: (label) => ({ level: label }),
   },
-  timestamp: (): [string, string] => ['timestamp', new Date().toISOString()],
+  timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
   ...(isJsonFormat
     ? {}
     : { transport: { target: 'pino-pretty', options: { colorize: true } } }),
