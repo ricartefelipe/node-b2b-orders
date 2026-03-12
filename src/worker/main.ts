@@ -8,6 +8,7 @@ import { Counter } from 'prom-client';
 import CircuitBreaker from 'opossum';
 
 import { createCircuitBreaker } from '../infrastructure/circuit-breaker/circuit-breaker.factory';
+import { log } from '../shared/logging/logger';
 
 const HEARTBEAT_FILE = path.join(process.env.HEARTBEAT_DIR || '/tmp', 'worker-heartbeat');
 
@@ -39,10 +40,6 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function log(msg: string, extra?: Record<string, unknown>) {
-  const entry: Record<string, unknown> = { ts: new Date().toISOString(), msg, ...extra };
-  console.log(JSON.stringify(entry));
-}
 
 async function ensureOrdersTopology(ch: amqp.Channel) {
   await ch.assertExchange(EXCHANGE, 'topic', { durable: true });

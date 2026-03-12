@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { LoggingModule } from './shared/logging/logger.module';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { CircuitBreakerModule } from './infrastructure/circuit-breaker/circuit-breaker.module';
@@ -17,6 +18,7 @@ import { MetricsModule } from './interfaces/metrics/metrics.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    LoggingModule,
     PrismaModule,
     RedisModule,
     CircuitBreakerModule,
