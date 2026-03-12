@@ -103,6 +103,7 @@ model Order {
   tenantId     String
   customerId   String
   status       String      @default("CREATED")
+  totalAmount  Decimal?    @db.Decimal(18,2)
   trackingCode String?
   trackingUrl  String?
   shippedAt    DateTime?

@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "order.confirmed",
+  "title": "order.confirmed",
+  "description": "Order confirmed event payload",
+  "type": "object",
+  "required": ["orderId", "tenantId", "customerId", "items", "totalAmount", "currency"],
+  "properties": {
+    "orderId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string" },
+    "correlationId": { "type": "string" },
+    "customerId": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sku", "qty", "price"],
+        "properties": {
+          "sku": { "type": "string" },
+          "qty": { "type": "integer", "minimum": 1 },
+          "price": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "totalAmount": { "type": "number", "minimum": 0 },
+    "currency": { "type": "string" }
+  }
+}

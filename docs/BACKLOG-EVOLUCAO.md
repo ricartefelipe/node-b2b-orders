@@ -15,7 +15,7 @@ Estado atual por critério de "pronto para venda".
 - [x] Exportação de audit log (GET /v1/audit/export)
 - [x] Webhook de eventos para integradores externos
 - [x] Order fulfillment lifecycle (ship, deliver)
-- [ ] Busca full-text / filtros avançados em pedidos
+- [x] Busca full-text / filtros avançados em pedidos
 
 ---
 
@@ -27,8 +27,8 @@ Estado atual por critério de "pronto para venda".
 - [x] JWT validado (sub, tid, roles, perms, plan, region)
 - [x] Sem credenciais hardcoded em código
 - [x] Rate limiting por tenant/usuário (token bucket via Redis)
-- [ ] Rotação de JWT_SECRET sem downtime
-- [ ] OIDC/RS256 para produção (depende do spring-saas-core)
+- [x] Rotação de JWT_SECRET sem downtime
+- [x] OIDC/RS256 para produção (JWT_PUBLIC_KEY ou JWKS_URI)
 
 ---
 
@@ -53,8 +53,8 @@ Estado atual por critério de "pronto para venda".
 - [x] docs/contracts/identity.md
 - [x] docs/contracts/headers.md
 - [x] API v1 estável
-- [ ] Versionamento de contratos (changelog de breaking changes)
-- [ ] Schema registry para eventos
+- [x] Versionamento de contratos (changelog de breaking changes)
+- [x] Schema registry para eventos
 
 ---
 
@@ -63,14 +63,14 @@ Estado atual por critério de "pronto para venda".
 - [x] Auditoria de ações sensíveis (CRUD pedidos/inventário)
 - [x] Auditoria de negações (ACCESS_DENIED)
 - [x] docs/compliance.md
-- [ ] Retenção configurável de audit log (TTL/archival)
-- [ ] Política de privacidade de dados (PII handling)
+- [x] Retenção configurável de audit log (TTL/archival)
+- [x] Política de privacidade de dados (PII handling)
 
 ---
 
 ## IA/LLM
 
-- [ ] API de dados agregados para análise de demanda
-- [ ] Endpoint de anomalias em pedidos
-- [ ] Documentação viva gerada por IA
-- [ ] Dados de inventário para previsão de reposição
+- [x] API de dados agregados para análise de demanda
+- [x] Endpoint de anomalias em pedidos
+- [x] Documentação viva gerada por IA
+- [x] Dados de inventário para previsão de reposição

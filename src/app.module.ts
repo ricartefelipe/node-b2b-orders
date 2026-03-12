@@ -14,6 +14,8 @@ import { InventoryModule } from './interfaces/inventory/inventory.module';
 import { AuditHttpModule } from './interfaces/audit/audit.module';
 import { AdminModule } from './interfaces/admin/admin.module';
 import { MetricsModule } from './interfaces/metrics/metrics.module';
+import { AnalyticsModule } from './interfaces/analytics/analytics.module';
+import { AiModule } from './interfaces/ai/ai.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { MetricsModule } from './interfaces/metrics/metrics.module';
     InventoryModule,
     AdminModule,
     MetricsModule,
+    AnalyticsModule,
+    AiModule,
   ],
 })
 export class AppModule {}
