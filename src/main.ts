@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import helmet from '@fastify/helmet';
 
+import { Logger } from 'nestjs-pino';
+
 import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { RedisService } from './infrastructure/redis/redis.service';
@@ -17,8 +19,9 @@ async function bootstrap() {
   collectDefaultMetrics();
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
-    logger: ['log', 'error', 'warn'],
+    bufferLogs: true,
   });
+  app.useLogger(app.get(Logger));
 
   const corsOrigins = process.env.CORS_ORIGINS;
   if (process.env.NODE_ENV === 'production' && !corsOrigins) {

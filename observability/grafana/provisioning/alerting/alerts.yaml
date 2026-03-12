@@ -1,0 +1,141 @@
+# Grafana 9+ provisioning - node-b2b-orders alert rules
+# Requires http_requests_total (optional - add via prom-client HTTP middleware) and redis_up (optional) for full coverage
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: node-b2b-orders-common
+    folder: node-b2b-orders
+    interval: 1m
+    rules:
+      - uid: orders-high-error-rate
+        title: High Error Rate
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: |
+                (sum(rate(http_requests_total{job="node-b2b-orders-api", status=~"5.."}[5m]))
+                / (sum(rate(http_requests_total{job="node-b2b-orders-api"}[5m])) + 0.001)) > 0.05
+              refId: A
+              instant: true
+        for: 5m
+        annotations:
+          summary: HTTP 5xx error rate above 5%
+          description: "More than 5% of requests are returning 5xx over the last 5 minutes."
+        labels:
+          severity: critical
+
+      - uid: orders-high-latency
+        title: High Latency
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: |
+                histogram_quantile(0.95,
+                  sum(rate(http_request_duration_seconds_bucket{job="node-b2b-orders-api"}[5m])) by (le)
+                ) > 2
+              refId: A
+              instant: true
+        for: 5m
+        annotations:
+          summary: p95 latency above 2 seconds
+          description: "95th percentile response time exceeds 2s over the last 5 minutes."
+        labels:
+          severity: warning
+
+      - uid: orders-health-check-down
+        title: Health Check Down
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 120
+              to: 0
+            model:
+              expr: up{job="node-b2b-orders-api"} == 0
+              refId: A
+              instant: true
+        for: 1m
+        annotations:
+          summary: Health check failing
+          description: "node-b2b-orders instance has been unreachable for more than 1 minute."
+        labels:
+          severity: critical
+
+      - uid: orders-high-memory
+        title: High Memory Usage
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: process_resident_memory_bytes{job="node-b2b-orders-api"} > 536870912
+              refId: A
+              instant: true
+        for: 5m
+        annotations:
+          summary: Process memory above 512MB
+          description: "Process memory usage exceeds 512MB."
+        labels:
+          severity: warning
+
+  - orgId: 1
+    name: node-b2b-orders-specific
+    folder: node-b2b-orders
+    interval: 1m
+    rules:
+      - uid: orders-order-failure-rate
+        title: Order Failure Rate
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: |
+                (sum(rate(orders_cancelled_total{job="node-b2b-orders-api"}[5m]))
+                / (sum(rate(orders_created_total{job="node-b2b-orders-api"}[5m])) + 0.001)) > 0.10
+              refId: A
+              instant: true
+        for: 5m
+        annotations:
+          summary: Order cancellation/failure rate above 10%
+          description: "Order cancellation rate exceeds 10% over the last 5 minutes."
+        labels:
+          severity: warning
+
+      - uid: orders-redis-connection-lost
+        title: Redis Connection Lost
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 120
+              to: 0
+            model:
+              expr: up{job="node-b2b-orders-api"} == 0
+              refId: A
+              instant: true
+        for: 1m
+        annotations:
+          summary: Service down — Redis readiness may be failing
+          description: "Instance unreachable for over 1 minute. Check Redis and DB connectivity."
+        labels:
+          severity: critical

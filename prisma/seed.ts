@@ -26,6 +26,7 @@ async function main() {
     'products:write',
     'admin:write',
     'profile:read',
+    'analytics:read',
   ];
   for (const code of perms) {
     await prisma.permission.upsert({ where: { code }, update: {}, create: { code } });
@@ -33,8 +34,8 @@ async function main() {
 
   const roleMap: Record<string, string[]> = {
     admin: perms,
-    ops: ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'products:read', 'products:write', 'profile:read'],
-    sales: ['orders:read', 'inventory:read', 'products:read', 'profile:read'],
+    ops: ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'products:read', 'products:write', 'profile:read', 'analytics:read'],
+    sales: ['orders:read', 'inventory:read', 'products:read', 'profile:read', 'analytics:read'],
   };
 
   for (const [roleName, pList] of Object.entries(roleMap)) {
@@ -86,6 +87,11 @@ async function main() {
     {
       permissionCode: 'profile:read',
       allowedPlans: ['free', 'pro', 'enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
+    {
+      permissionCode: 'analytics:read',
+      allowedPlans: ['pro', 'enterprise'],
       allowedRegions: ['region-a', 'region-b'],
     },
   ];

@@ -21,6 +21,7 @@ const mockPrisma = {
     findFirst: jest.fn(),
     findMany: jest.fn(),
   },
+  product: { findMany: jest.fn() },
   outboxEvent: { create: jest.fn() },
 };
 
@@ -41,6 +42,7 @@ describe('OrdersService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPrisma.product.findMany.mockResolvedValue([]);
     service = new OrdersService(
       mockPrisma as unknown as PrismaService,
       mockRedis as unknown as RedisService,
@@ -253,7 +255,7 @@ describe('OrdersService', () => {
       expect(result).toEqual({ id: 'o1', status: 'CONFIRMED' });
       expect(mockTx.order.update).toHaveBeenCalledWith({
         where: { id: 'o1' },
-        data: { status: 'CONFIRMED' },
+        data: { status: 'CONFIRMED', totalAmount: 20 },
         include: { items: true },
       });
     });
@@ -454,7 +456,7 @@ describe('OrdersService', () => {
       }));
       mockPrisma.order.findMany.mockResolvedValue(orders);
 
-      const result = await service.listOrders('t1', undefined, undefined, 20);
+      const result = await service.listOrders('t1', undefined, undefined, undefined, undefined, 20);
 
       expect(result.data).toHaveLength(20);
       expect(result.hasMore).toBe(true);
@@ -491,7 +493,7 @@ describe('OrdersService', () => {
       ).toString('base64url');
       mockPrisma.order.findMany.mockResolvedValue([]);
 
-      await service.listOrders('t1', undefined, cursor, 10);
+      await service.listOrders('t1', undefined, cursor, undefined, undefined, 10);
 
       expect(mockPrisma.order.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

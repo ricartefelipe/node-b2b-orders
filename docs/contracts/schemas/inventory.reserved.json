@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "inventory.reserved",
+  "title": "inventory.reserved",
+  "description": "Inventory reserved for order (also known as stock.reserved)",
+  "type": "object",
+  "required": ["orderId", "tenantId"],
+  "properties": {
+    "orderId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string" },
+    "correlationId": { "type": "string" }
+  }
+}
