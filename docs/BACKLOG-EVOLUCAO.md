@@ -13,7 +13,8 @@ Estado atual por critério de "pronto para venda".
 - [x] Outbox para eventos de domínio (Prisma transaction + worker)
 - [x] Auditoria consultável via GET /v1/audit
 - [x] Exportação de audit log (GET /v1/audit/export)
-- [ ] Webhook de eventos para integradores externos
+- [x] Webhook de eventos para integradores externos
+- [x] Order fulfillment lifecycle (ship, deliver)
 - [ ] Busca full-text / filtros avançados em pedidos
 
 ---
@@ -41,8 +42,8 @@ Estado atual por critério de "pronto para venda".
 - [x] Scripts: up.sh, migrate.sh, seed.sh, smoke.sh
 - [x] Circuit breaker (opossum) para publicação RabbitMQ
 - [x] Chaos engineering (/v1/admin/chaos)
-- [ ] Alertas Grafana pré-configurados
-- [ ] Structured logging (JSON) em produção
+- [x] Alertas Grafana pré-configurados
+- [x] Structured logging (JSON) em produção
 
 ---
 
