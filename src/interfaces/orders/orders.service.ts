@@ -189,6 +189,140 @@ export class OrdersService {
     return { id: updated.id, status: updated.status };
   }
 
+  async shipOrder(
+    tenantId: string,
+    correlationId: string,
+    idempotencyKey: string,
+    orderId: string,
+    trackingCode: string,
+    trackingUrl?: string,
+    actorSub?: string,
+  ) {
+    if (!idempotencyKey) throw new BadRequestException('Missing Idempotency-Key');
+    const idemKey = `idem:${tenantId}:ship-order:${orderId}:${idempotencyKey}`;
+    const hit = await this.redis.idemGet(idemKey);
+    if (hit) return hit;
+
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+    });
+    if (!order) throw new NotFoundException('order not found');
+    if (order.status !== 'PAID')
+      throw new ConflictException(`cannot ship status ${order.status}`);
+
+    const now = new Date();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const o = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'SHIPPED',
+          trackingCode,
+          trackingUrl: trackingUrl || null,
+          shippedAt: now,
+        },
+        include: { items: true },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          eventType: 'order.shipped',
+          aggregateType: 'Order',
+          aggregateId: orderId,
+          payload: { orderId, tenantId, correlationId, trackingCode, trackingUrl },
+        },
+      });
+
+      return o;
+    });
+
+    this.metrics.ordersShipped.inc({ tenant_id: tenantId });
+
+    await this.audit.log({
+      tenantId,
+      actorSub: actorSub || 'unknown',
+      action: 'order.shipped',
+      target: `Order:${orderId}`,
+      detail: { orderId, trackingCode },
+      correlationId,
+    });
+
+    const response = {
+      id: updated.id,
+      status: updated.status,
+      trackingCode: updated.trackingCode,
+      trackingUrl: updated.trackingUrl,
+      shippedAt: updated.shippedAt,
+    };
+    await this.redis.idemSet(idemKey, response, 24 * 3600);
+    return response;
+  }
+
+  async deliverOrder(
+    tenantId: string,
+    correlationId: string,
+    idempotencyKey: string,
+    orderId: string,
+    actorSub?: string,
+  ) {
+    if (!idempotencyKey) throw new BadRequestException('Missing Idempotency-Key');
+    const idemKey = `idem:${tenantId}:deliver-order:${orderId}:${idempotencyKey}`;
+    const hit = await this.redis.idemGet(idemKey);
+    if (hit) return hit;
+
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+    });
+    if (!order) throw new NotFoundException('order not found');
+    if (order.status !== 'SHIPPED')
+      throw new ConflictException(`cannot deliver status ${order.status}`);
+
+    const now = new Date();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const o = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'DELIVERED',
+          deliveredAt: now,
+        },
+        include: { items: true },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          eventType: 'order.delivered',
+          aggregateType: 'Order',
+          aggregateId: orderId,
+          payload: { orderId, tenantId, correlationId },
+        },
+      });
+
+      return o;
+    });
+
+    this.metrics.ordersDelivered.inc({ tenant_id: tenantId });
+
+    await this.audit.log({
+      tenantId,
+      actorSub: actorSub || 'unknown',
+      action: 'order.delivered',
+      target: `Order:${orderId}`,
+      detail: { orderId },
+      correlationId,
+    });
+
+    const response = {
+      id: updated.id,
+      status: updated.status,
+      deliveredAt: updated.deliveredAt,
+    };
+    await this.redis.idemSet(idemKey, response, 24 * 3600);
+    return response;
+  }
+
   async getOrder(tenantId: string, orderId: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
