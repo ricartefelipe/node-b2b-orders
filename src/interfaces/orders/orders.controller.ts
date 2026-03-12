@@ -8,7 +8,7 @@ import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
 import { CursorPageQuery } from '../../shared/pagination/cursor';
 
-import { CreateOrderRequestDto } from './dto';
+import { CreateOrderRequestDto, ShipOrderDto } from './dto';
 import { OrdersService } from './orders.service';
 
 @ApiTags('orders')
@@ -46,6 +46,35 @@ export class OrdersController {
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';
     return this.orders.confirmOrder(tenantId, correlationId, idem, id, actorSub);
+  }
+
+  @Post(':id/ship')
+  @Permission('orders:write')
+  @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
+  async ship(
+    @Req() req: any,
+    @Headers('idempotency-key') idem: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ShipOrderDto,
+  ) {
+    const tenantId = req.headers['x-tenant-id'];
+    const correlationId = req.correlationId || '';
+    const actorSub = req.user?.sub || 'unknown';
+    return this.orders.shipOrder(tenantId, correlationId, idem, id, body.trackingCode, body.trackingUrl, actorSub);
+  }
+
+  @Post(':id/deliver')
+  @Permission('orders:write')
+  @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
+  async deliver(
+    @Req() req: any,
+    @Headers('idempotency-key') idem: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const tenantId = req.headers['x-tenant-id'];
+    const correlationId = req.correlationId || '';
+    const actorSub = req.user?.sub || 'unknown';
+    return this.orders.deliverOrder(tenantId, correlationId, idem, id, actorSub);
   }
 
   @Post(':id/cancel')
