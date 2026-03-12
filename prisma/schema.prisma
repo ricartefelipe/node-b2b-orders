@@ -99,12 +99,16 @@ model AuditLog {
 }
 
 model Order {
-  id         String      @id @default(uuid())
-  tenantId   String
-  customerId String
-  status     String      @default("CREATED")
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           String      @id @default(uuid())
+  tenantId     String
+  customerId   String
+  status       String      @default("CREATED")
+  trackingCode String?
+  trackingUrl  String?
+  shippedAt    DateTime?
+  deliveredAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   tenant Tenant     @relation(fields: [tenantId], references: [id])
   items  OrderItem[]

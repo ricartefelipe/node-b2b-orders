@@ -299,6 +299,17 @@ export async function handleOrderMessage(prisma: PrismaClient, routingKey: strin
     });
 
     log('order.confirmed_and_charge_requested', { orderId, tenantId, correlationId });
+    return;
+  }
+
+  if (routingKey === 'order.shipped') {
+    log('order.shipped', { orderId, tenantId, correlationId, trackingCode: body.trackingCode });
+    return;
+  }
+
+  if (routingKey === 'order.delivered') {
+    log('order.delivered', { orderId, tenantId, correlationId });
+    return;
   }
 }
 
