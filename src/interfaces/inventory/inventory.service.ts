@@ -117,6 +117,11 @@ export class InventoryService {
         data: { availableQty: newAvailable },
       });
 
+      await tx.product.updateMany({
+        where: { tenantId, sku, active: true },
+        data: { inStock: newAvailable > 0 },
+      });
+
       const adjustment = await tx.inventoryAdjustment.create({
         data: {
           tenantId,
