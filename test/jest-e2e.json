@@ -1,6 +1,8 @@
 {
-  "preset": "ts-jest",
   "testEnvironment": "node",
   "testMatch": ["**/test/e2e/**/*.e2e-spec.ts"],
-  "transformIgnorePatterns": ["/node_modules/(?!jose/.*)"]
+  "transform": {
+    "^.+\\.(t|j)sx?$": "@swc/jest"
+  },
+  "transformIgnorePatterns": ["node_modules/(?!jose/.*)"]
 }
