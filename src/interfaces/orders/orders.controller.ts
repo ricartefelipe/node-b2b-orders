@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../shared/auth/jwt.guard';
@@ -37,6 +37,7 @@ export class OrdersController {
   }
 
   @Post(':id/confirm')
+  @HttpCode(200)
   @Permission('orders:write')
   @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
   async confirm(
@@ -51,6 +52,7 @@ export class OrdersController {
   }
 
   @Post(':id/ship')
+  @HttpCode(200)
   @Permission('orders:write')
   @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
   async ship(
@@ -66,6 +68,7 @@ export class OrdersController {
   }
 
   @Post(':id/deliver')
+  @HttpCode(200)
   @Permission('orders:write')
   @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
   async deliver(
@@ -80,6 +83,7 @@ export class OrdersController {
   }
 
   @Post(':id/cancel')
+  @HttpCode(200)
   @Permission('orders:write')
   @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
   async cancel(
