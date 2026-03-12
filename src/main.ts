@@ -6,6 +6,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { collectDefaultMetrics } from 'prom-client';
 import { v4 as uuidv4 } from 'uuid';
 
+import helmet from '@fastify/helmet';
+
 import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { RedisService } from './infrastructure/redis/redis.service';
@@ -93,8 +95,7 @@ async function bootstrap() {
     }
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  await app.register(require('@fastify/helmet'), {
+  await app.register(helmet, {
     contentSecurityPolicy: false,
   });
 
