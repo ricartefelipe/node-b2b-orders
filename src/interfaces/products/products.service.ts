@@ -81,9 +81,9 @@ export class ProductsService {
     tenantId: string,
     filters: ProductFilters,
     cursor?: string,
-    rawLimit?: number,
     sortBy?: string,
     sortOrder?: 'asc' | 'desc',
+    rawLimit?: number,
   ): Promise<PaginatedResponse<any>> {
     const limit = resolveLimit(rawLimit);
     const where: Prisma.ProductWhereInput = { tenantId, active: true };
@@ -103,11 +103,9 @@ export class ProductsService {
       ];
     }
 
-    const orderBy = resolveProductSort(sortBy, sortOrder);
-
     const findArgs: Prisma.ProductFindManyArgs = {
       where,
-      orderBy,
+      orderBy: resolveProductSort(sortBy, sortOrder),
       take: limit + 1,
     };
 

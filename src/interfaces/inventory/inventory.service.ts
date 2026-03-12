@@ -30,19 +30,17 @@ export class InventoryService {
     tenantId: string,
     sku?: string,
     cursor?: string,
-    rawLimit?: number,
     sortBy?: string,
     sortOrder?: 'asc' | 'desc',
+    rawLimit?: number,
   ): Promise<PaginatedResponse<any>> {
     const limit = resolveLimit(rawLimit);
     const where: Record<string, unknown> = { tenantId };
     if (sku) where.sku = sku;
 
-    const orderBy = resolveInventorySort(sortBy, sortOrder);
-
     const findArgs: Record<string, unknown> = {
       where,
-      orderBy,
+      orderBy: resolveInventorySort(sortBy, sortOrder),
       take: limit + 1,
     };
 
@@ -120,11 +118,6 @@ export class InventoryService {
       await tx.inventoryItem.update({
         where: { tenantId_sku: { tenantId, sku } },
         data: { availableQty: newAvailable },
-      });
-
-      await tx.product.updateMany({
-        where: { tenantId, sku, active: true },
-        data: { inStock: newAvailable > 0 },
       });
 
       const adjustment = await tx.inventoryAdjustment.create({
