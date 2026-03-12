@@ -226,6 +226,97 @@ describe('ProductsService', () => {
     });
   });
 
+  describe('list — additional edge cases', () => {
+    it('should apply inStock filter', async () => {
+      mockPrisma.product.findMany.mockResolvedValue([]);
+
+      await service.list('t1', { inStock: true }, undefined, 20);
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ inStock: true }),
+        }),
+      );
+    });
+
+    it('should apply cursor-based pagination when cursor is provided', async () => {
+      const cursor = Buffer.from(
+        JSON.stringify({ id: 'p5', createdAt: '2025-01-01T00:00:00.000Z' }),
+      ).toString('base64url');
+      mockPrisma.product.findMany.mockResolvedValue([]);
+
+      await service.list('t1', {}, cursor, 10);
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cursor: { id: 'p5' },
+          skip: 1,
+        }),
+      );
+    });
+
+    it('should apply only minPrice when maxPrice is absent', async () => {
+      mockPrisma.product.findMany.mockResolvedValue([]);
+
+      await service.list('t1', { minPrice: 50 }, undefined, 20);
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            price: { gte: 50 },
+          }),
+        }),
+      );
+    });
+
+    it('should apply only maxPrice when minPrice is absent', async () => {
+      mockPrisma.product.findMany.mockResolvedValue([]);
+
+      await service.list('t1', { maxPrice: 200 }, undefined, 20);
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            price: { lte: 200 },
+          }),
+        }),
+      );
+    });
+
+    it('should combine multiple filters simultaneously', async () => {
+      mockPrisma.product.findMany.mockResolvedValue([]);
+
+      await service.list(
+        't1',
+        { category: 'tools', minPrice: 10, maxPrice: 50, searchTerm: 'drill' },
+        undefined,
+        20,
+      );
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            category: 'tools',
+            price: { gte: 10, lte: 50 },
+            OR: expect.arrayContaining([
+              expect.objectContaining({ name: { contains: 'drill', mode: 'insensitive' } }),
+            ]),
+          }),
+        }),
+      );
+    });
+
+    it('should default limit via resolveLimit when rawLimit is undefined', async () => {
+      mockPrisma.product.findMany.mockResolvedValue([]);
+
+      await service.list('t1', {});
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 21 }),
+      );
+    });
+  });
+
   describe('getPriceRange', () => {
     it('should return min and max prices', async () => {
       mockPrisma.product.aggregate.mockResolvedValue({
