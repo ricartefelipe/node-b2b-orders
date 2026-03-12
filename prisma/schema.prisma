@@ -197,3 +197,37 @@ model OutboxEvent {
   @@index([eventType])
   @@index([status])
 }
+
+model WebhookEndpoint {
+  id        String   @id @default(uuid())
+  tenantId  String
+  url       String
+  events    String[]
+  secret    String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId])
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id          String    @id @default(uuid())
+  endpointId  String
+  eventType   String
+  payload     Json
+  status      String    @default("PENDING")
+  httpStatus  Int?
+  attempts    Int       @default(0)
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime?
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([endpointId])
+  @@index([status])
+  @@map("webhook_deliveries")
+}

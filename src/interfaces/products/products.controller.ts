@@ -66,9 +66,9 @@ export class ProductsController {
         searchTerm: filters.searchTerm,
       },
       page.cursor,
-      page.limit,
       sort.sortBy,
       sort.sortOrder,
+      page.limit,
     );
   }
 
