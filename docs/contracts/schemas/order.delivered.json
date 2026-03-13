@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "order.delivered",
+  "title": "order.delivered",
+  "description": "Order delivered event payload",
+  "type": "object",
+  "required": ["orderId", "tenantId"],
+  "properties": {
+    "orderId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string" },
+    "correlationId": { "type": "string" }
+  }
+}

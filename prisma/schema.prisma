@@ -99,12 +99,17 @@ model AuditLog {
 }
 
 model Order {
-  id         String      @id @default(uuid())
-  tenantId   String
-  customerId String
-  status     String      @default("CREATED")
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           String      @id @default(uuid())
+  tenantId     String
+  customerId   String
+  status       String      @default("CREATED")
+  totalAmount  Decimal?    @db.Decimal(18,2)
+  trackingCode String?
+  trackingUrl  String?
+  shippedAt    DateTime?
+  deliveredAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   tenant Tenant     @relation(fields: [tenantId], references: [id])
   items  OrderItem[]
@@ -191,4 +196,38 @@ model OutboxEvent {
   @@index([tenantId])
   @@index([eventType])
   @@index([status])
+}
+
+model WebhookEndpoint {
+  id        String   @id @default(uuid())
+  tenantId  String
+  url       String
+  events    String[]
+  secret    String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId])
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id          String    @id @default(uuid())
+  endpointId  String
+  eventType   String
+  payload     Json
+  status      String    @default("PENDING")
+  httpStatus  Int?
+  attempts    Int       @default(0)
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime?
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([endpointId])
+  @@index([status])
+  @@map("webhook_deliveries")
 }

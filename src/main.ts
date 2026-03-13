@@ -1,21 +1,29 @@
+import './shared/tracing/tracing';
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 import { collectDefaultMetrics } from 'prom-client';
 import { v4 as uuidv4 } from 'uuid';
+
+import helmet from '@fastify/helmet';
+
+import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { RedisService } from './infrastructure/redis/redis.service';
+import { ProblemDetailsFilter } from './shared/filters/problem-details.filter';
 
 async function bootstrap() {
   collectDefaultMetrics();
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
-    logger: ['log', 'error', 'warn'],
+    bufferLogs: true,
   });
+  app.useLogger(app.get(Logger));
 
   const corsOrigins = process.env.CORS_ORIGINS;
   if (process.env.NODE_ENV === 'production' && !corsOrigins) {
@@ -28,6 +36,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalFilters(new ProblemDetailsFilter());
 
   const config = new DocumentBuilder()
     .setTitle('node-b2b-orders')
@@ -59,6 +68,13 @@ async function bootstrap() {
 
     const tenantId = req.headers['x-tenant-id'] || '';
     req.tenantId = tenantId;
+
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan) {
+      activeSpan.setAttribute('correlation.id', cid);
+      if (tenantId) activeSpan.setAttribute('tenant.id', tenantId);
+      reply.header('x-trace-id', activeSpan.spanContext().traceId);
+    }
 
     const chaos = await redis.getChaosConfig(tenantId || 'public');
     if (chaos.enabled) {
@@ -93,8 +109,7 @@ async function bootstrap() {
     }
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  await app.register(require('@fastify/helmet'), {
+  await app.register(helmet as any, {
     contentSecurityPolicy: false,
   });
 
