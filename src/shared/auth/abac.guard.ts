@@ -27,12 +27,14 @@ export class AbacGuard implements CanActivate {
     }
     if (user.tid === '*' && (user.roles || []).includes('admin')) return true;
 
-    const policy = await this.prisma.policy.findUnique({ where: { permissionCode: required } });
+    const policy = await this.prisma.policy.findFirst({
+      where: { permissionCode: required, enabled: true },
+    });
     if (!policy) {
       await this.logDenied(req, required, 'no_policy', 'No policy for permission');
       throw new ForbiddenException('No policy for permission');
     }
-    if (policy.effect !== 'allow') {
+    if (policy.effect.toUpperCase() !== 'ALLOW') {
       await this.logDenied(req, required, 'policy_deny', `Policy effect: ${policy.effect}`);
       throw new ForbiddenException('Policy denies');
     }
@@ -40,15 +42,28 @@ export class AbacGuard implements CanActivate {
     const plan = user.plan || 'free';
     const region = user.region || 'region-a';
 
-    if (policy.allowedPlans?.length && !policy.allowedPlans.includes(plan)) {
+    const plans: string[] = this.parseJsonArray(policy.allowedPlans);
+    if (plans.length && !plans.includes(plan)) {
       await this.logDenied(req, required, 'plan_not_allowed', `Plan '${plan}' not allowed`);
       throw new ForbiddenException(`Plan '${plan}' not allowed`);
     }
-    if (policy.allowedRegions?.length && !policy.allowedRegions.includes(region)) {
+    const regions: string[] = this.parseJsonArray(policy.allowedRegions);
+    if (regions.length && !regions.includes(region)) {
       await this.logDenied(req, required, 'region_not_allowed', `Region '${region}' not allowed`);
       throw new ForbiddenException(`Region '${region}' not allowed`);
     }
     return true;
+  }
+
+  private parseJsonArray(value: string | string[] | null | undefined): string[] {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
 
   private async logDenied(req: any, permission: string, reason: string, message: string): Promise<void> {
