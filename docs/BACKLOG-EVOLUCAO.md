@@ -16,6 +16,7 @@ Estado atual por critério de "pronto para venda".
 - [x] Webhook de eventos para integradores externos
 - [x] Order fulfillment lifecycle (ship, deliver)
 - [x] Busca full-text / filtros avançados em pedidos
+- [x] Seed expandido com pedidos, ajustes de inventário e dados de auditoria realistas
 
 ---
 
@@ -44,6 +45,7 @@ Estado atual por critério de "pronto para venda".
 - [x] Chaos engineering (/v1/admin/chaos)
 - [x] Alertas Grafana pré-configurados
 - [x] Structured logging (JSON) em produção
+- [x] Prisma seed com dados operacionais de 3 meses simulados
 
 ---
 
