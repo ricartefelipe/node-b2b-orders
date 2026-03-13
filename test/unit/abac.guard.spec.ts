@@ -9,7 +9,7 @@ const mockReflector = {
 };
 
 const mockPrisma = {
-  policy: { findUnique: jest.fn() },
+  policy: { findFirst: jest.fn() },
 };
 
 const mockAudit = { log: jest.fn().mockResolvedValue(undefined) };
@@ -46,7 +46,7 @@ describe('AbacGuard', () => {
     mockReflector.getAllAndOverride.mockReturnValue('orders:write');
     const ctx = createMockContext({ tid: '*', roles: ['admin'] });
     expect(await guard.canActivate(ctx)).toBe(true);
-    expect(mockPrisma.policy.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.policy.findFirst).not.toHaveBeenCalled();
   });
 
   it('should throw when user missing', async () => {
@@ -57,10 +57,11 @@ describe('AbacGuard', () => {
 
   it('should deny when policy effect is deny', async () => {
     mockReflector.getAllAndOverride.mockReturnValue('orders:write');
-    mockPrisma.policy.findUnique.mockResolvedValue({
-      effect: 'deny',
-      allowedPlans: [],
-      allowedRegions: [],
+    mockPrisma.policy.findFirst.mockResolvedValue({
+      effect: 'DENY',
+      allowedPlans: '[]',
+      allowedRegions: '[]',
+      enabled: true,
     });
     const ctx = createMockContext({ tid: 't1', plan: 'pro', region: 'region-a' });
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
@@ -68,10 +69,11 @@ describe('AbacGuard', () => {
 
   it('should deny when plan not in allowedPlans', async () => {
     (mockReflector.getAllAndOverride as jest.Mock).mockReturnValue('orders:write');
-    (mockPrisma.policy.findUnique as jest.Mock).mockResolvedValue({
-      effect: 'allow',
-      allowedPlans: ['enterprise'],
-      allowedRegions: ['region-a'],
+    (mockPrisma.policy.findFirst as jest.Mock).mockResolvedValue({
+      effect: 'ALLOW',
+      allowedPlans: '["enterprise"]',
+      allowedRegions: '[]',
+      enabled: true,
     });
     const ctx = createMockContext({
       tid: 't1',
@@ -83,10 +85,11 @@ describe('AbacGuard', () => {
 
   it('should allow when plan and region match', async () => {
     mockReflector.getAllAndOverride.mockReturnValue('orders:read');
-    mockPrisma.policy.findUnique.mockResolvedValue({
-      effect: 'allow',
-      allowedPlans: ['pro', 'enterprise'],
-      allowedRegions: ['region-a'],
+    mockPrisma.policy.findFirst.mockResolvedValue({
+      effect: 'ALLOW',
+      allowedPlans: '["pro","enterprise"]',
+      allowedRegions: '[]',
+      enabled: true,
     });
     const ctx = createMockContext({
       tid: 't1',
