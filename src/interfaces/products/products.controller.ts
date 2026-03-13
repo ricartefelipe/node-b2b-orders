@@ -20,6 +20,7 @@ import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
 import { CursorPageQuery } from '../../shared/pagination/cursor';
 
+import { SortQueryDto } from '../../shared/sorting/sort-query.dto';
 import { CreateProductDto, ProductFilterDto, UpdateProductDto } from './dto';
 import { ProductsService } from './products.service';
 
@@ -52,6 +53,7 @@ export class ProductsController {
     @Req() req: any,
     @Query() filters: ProductFilterDto,
     @Query() page: CursorPageQuery,
+    @Query() sort: SortQueryDto,
   ) {
     const tenantId = req.headers['x-tenant-id'];
     return this.products.list(
@@ -64,6 +66,8 @@ export class ProductsController {
         searchTerm: filters.searchTerm,
       },
       page.cursor,
+      sort.sortBy,
+      sort.sortOrder,
       page.limit,
     );
   }

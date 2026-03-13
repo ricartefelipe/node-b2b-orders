@@ -52,7 +52,7 @@ describe('InventoryService', () => {
       ];
       mockPrisma.inventoryItem.findMany.mockResolvedValue(items);
 
-      const result = await service.list('t1', undefined, undefined, 20);
+      const result = await service.list('t1', undefined, undefined, undefined, undefined, 20);
 
       expect(result.data).toHaveLength(2);
       expect(result.hasMore).toBe(false);
@@ -61,7 +61,7 @@ describe('InventoryService', () => {
     it('should filter by SKU when provided', async () => {
       mockPrisma.inventoryItem.findMany.mockResolvedValue([]);
 
-      await service.list('t1', 'SKU-1', undefined, 20);
+      await service.list('t1', 'SKU-1', undefined, undefined, undefined, 20);
 
       expect(mockPrisma.inventoryItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -210,6 +210,106 @@ describe('InventoryService', () => {
     });
   });
 
+  describe('createAdjustment — edge cases', () => {
+    it('should work without idempotency key (no cache check)', async () => {
+      mockTx.inventoryItem.findUnique.mockResolvedValue({
+        tenantId: 't1', sku: 'SKU-1', availableQty: 100, reservedQty: 0,
+      });
+      mockTx.inventoryItem.update.mockResolvedValue({});
+      const adjustment = { id: 'adj-nokey', sku: 'SKU-1', type: 'IN', qty: 5 };
+      mockTx.inventoryAdjustment.create.mockResolvedValue(adjustment);
+
+      const result = await service.createAdjustment(
+        't1', 'cid', 'actor@e2e', undefined, 'SKU-1', AdjustmentType.IN, 5, 'no key',
+      );
+
+      expect(result).toEqual(adjustment);
+      expect(mockRedis.idemGet).not.toHaveBeenCalled();
+      expect(mockRedis.idemSet).not.toHaveBeenCalled();
+    });
+
+    it('should cache result when idempotency key is provided', async () => {
+      mockRedis.idemGet.mockResolvedValue(null);
+      mockTx.inventoryItem.findUnique.mockResolvedValue({
+        tenantId: 't1', sku: 'SKU-1', availableQty: 50, reservedQty: 0,
+      });
+      mockTx.inventoryItem.update.mockResolvedValue({});
+      mockTx.inventoryAdjustment.create.mockResolvedValue({ id: 'adj-cache' });
+
+      await service.createAdjustment(
+        't1', 'cid', 'actor@e2e', 'idem-key-1', 'SKU-1', AdjustmentType.IN, 10, 'restock',
+      );
+
+      expect(mockRedis.idemSet).toHaveBeenCalledWith(
+        'idem:t1:inv-adj:idem-key-1',
+        expect.objectContaining({ id: 'adj-cache' }),
+        24 * 3600,
+      );
+    });
+
+    it('should increment inventoryAdjusted metric with correct labels', async () => {
+      mockRedis.idemGet.mockResolvedValue(null);
+      mockTx.inventoryItem.findUnique.mockResolvedValue({
+        tenantId: 't1', sku: 'SKU-1', availableQty: 100, reservedQty: 0,
+      });
+      mockTx.inventoryItem.update.mockResolvedValue({});
+      mockTx.inventoryAdjustment.create.mockResolvedValue({ id: 'adj-met' });
+
+      await service.createAdjustment(
+        't1', 'cid', 'actor@e2e', 'key-met', 'SKU-1', AdjustmentType.OUT, 5, 'sold',
+      );
+
+      expect(mockMetrics.inventoryAdjusted.inc).toHaveBeenCalledWith({
+        tenant_id: 't1',
+        type: 'OUT',
+      });
+    });
+  });
+
+  describe('list — edge cases', () => {
+    it('should return hasMore=true when more results exist', async () => {
+      const items = Array.from({ length: 21 }, (_, i) => ({
+        id: `i${i}`,
+        tenantId: 't1',
+        sku: `SKU-${i}`,
+        availableQty: i * 10,
+      }));
+      mockPrisma.inventoryItem.findMany.mockResolvedValue(items);
+
+      const result = await service.list('t1', undefined, undefined, undefined, undefined, 20);
+
+      expect(result.data).toHaveLength(20);
+      expect(result.hasMore).toBe(true);
+      expect(result.nextCursor).toBeTruthy();
+    });
+
+    it('should apply cursor-based pagination when cursor is provided', async () => {
+      const cursor = Buffer.from(
+        JSON.stringify({ id: 'i5', createdAt: '2025-01-01T00:00:00.000Z' }),
+      ).toString('base64url');
+      mockPrisma.inventoryItem.findMany.mockResolvedValue([]);
+
+      await service.list('t1', undefined, cursor, undefined, undefined, 10);
+
+      expect(mockPrisma.inventoryItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cursor: { id: 'i5' },
+          skip: 1,
+        }),
+      );
+    });
+
+    it('should default limit when rawLimit is undefined', async () => {
+      mockPrisma.inventoryItem.findMany.mockResolvedValue([]);
+
+      await service.list('t1');
+
+      expect(mockPrisma.inventoryItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 21 }),
+      );
+    });
+  });
+
   describe('listAdjustments', () => {
     it('should return paginated adjustments', async () => {
       const adjustments = [
@@ -231,6 +331,39 @@ describe('InventoryService', () => {
       expect(mockPrisma.inventoryAdjustment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { tenantId: 't1', sku: 'SKU-1' },
+        }),
+      );
+    });
+
+    it('should return hasMore=true when more adjustments exist', async () => {
+      const adjustments = Array.from({ length: 21 }, (_, i) => ({
+        id: `a${i}`,
+        sku: 'SKU-1',
+        type: 'IN',
+        qty: 10,
+        createdAt: new Date(),
+      }));
+      mockPrisma.inventoryAdjustment.findMany.mockResolvedValue(adjustments);
+
+      const result = await service.listAdjustments('t1', undefined, undefined, 20);
+
+      expect(result.data).toHaveLength(20);
+      expect(result.hasMore).toBe(true);
+      expect(result.nextCursor).toBeTruthy();
+    });
+
+    it('should apply cursor-based pagination for adjustments', async () => {
+      const cursor = Buffer.from(
+        JSON.stringify({ id: 'a5', createdAt: '2025-06-01T00:00:00.000Z' }),
+      ).toString('base64url');
+      mockPrisma.inventoryAdjustment.findMany.mockResolvedValue([]);
+
+      await service.listAdjustments('t1', undefined, cursor, 10);
+
+      expect(mockPrisma.inventoryAdjustment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cursor: { id: 'a5' },
+          skip: 1,
         }),
       );
     });

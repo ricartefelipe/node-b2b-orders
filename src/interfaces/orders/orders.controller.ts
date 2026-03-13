@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../shared/auth/jwt.guard';
@@ -8,7 +8,9 @@ import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
 import { CursorPageQuery } from '../../shared/pagination/cursor';
 
-import { CreateOrderRequestDto } from './dto';
+import { SortQueryDto } from '../../shared/sorting/sort-query.dto';
+import { CreateOrderRequestDto, ShipOrderDto } from './dto';
+import { ListOrdersQueryDto } from './list-orders-query.dto';
 import { OrdersService } from './orders.service';
 
 @ApiTags('orders')
@@ -35,6 +37,7 @@ export class OrdersController {
   }
 
   @Post(':id/confirm')
+  @HttpCode(200)
   @Permission('orders:write')
   @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
   async confirm(
@@ -48,9 +51,46 @@ export class OrdersController {
     return this.orders.confirmOrder(tenantId, correlationId, idem, id, actorSub);
   }
 
-  @Post(':id/cancel')
+  @Post(':id/ship')
+  @HttpCode(200)
   @Permission('orders:write')
-  async cancel(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
+  async ship(
+    @Req() req: any,
+    @Headers('idempotency-key') idem: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ShipOrderDto,
+  ) {
+    const tenantId = req.headers['x-tenant-id'];
+    const correlationId = req.correlationId || '';
+    const actorSub = req.user?.sub || 'unknown';
+    return this.orders.shipOrder(tenantId, correlationId, idem, id, body.trackingCode, body.trackingUrl, actorSub);
+  }
+
+  @Post(':id/deliver')
+  @HttpCode(200)
+  @Permission('orders:write')
+  @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
+  async deliver(
+    @Req() req: any,
+    @Headers('idempotency-key') idem: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const tenantId = req.headers['x-tenant-id'];
+    const correlationId = req.correlationId || '';
+    const actorSub = req.user?.sub || 'unknown';
+    return this.orders.deliverOrder(tenantId, correlationId, idem, id, actorSub);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(200)
+  @Permission('orders:write')
+  @ApiHeader({ name: 'Idempotency-Key', required: false, description: 'Chave de idempotência' })
+  async cancel(
+    @Req() req: any,
+    @Headers('idempotency-key') idem: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     const tenantId = req.headers['x-tenant-id'];
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';
@@ -66,8 +106,24 @@ export class OrdersController {
 
   @Get()
   @Permission('orders:read')
-  async list(@Req() req: any, @Query() page: CursorPageQuery, @Query('status') status?: string) {
+  async list(
+    @Req() req: any,
+    @Query() page: CursorPageQuery,
+    @Query() sort: SortQueryDto,
+    @Query() filters: ListOrdersQueryDto,
+    @Query('status') status?: string,
+  ) {
     const tenantId = req.headers['x-tenant-id'];
-    return this.orders.listOrders(tenantId, status, page.cursor, page.limit);
+    return this.orders.listOrders(
+      tenantId,
+      status,
+      page.cursor,
+      sort.sortBy,
+      sort.sortOrder,
+      page.limit,
+      filters.q || filters.minAmount != null || filters.maxAmount != null || filters.dateFrom || filters.dateTo
+        ? { q: filters.q, minAmount: filters.minAmount, maxAmount: filters.maxAmount, dateFrom: filters.dateFrom, dateTo: filters.dateTo }
+        : undefined,
+    );
   }
 }

@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "order.shipped",
+  "title": "order.shipped",
+  "description": "Order shipped event payload",
+  "type": "object",
+  "required": ["orderId", "tenantId", "trackingCode"],
+  "properties": {
+    "orderId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string" },
+    "correlationId": { "type": "string" },
+    "trackingCode": { "type": "string" },
+    "trackingUrl": { "type": ["string", "null"] }
+  }
+}
