@@ -6,6 +6,8 @@ export class BusinessMetricsService {
   readonly ordersCreated: Counter<string>;
   readonly ordersConfirmed: Counter<string>;
   readonly ordersCancelled: Counter<string>;
+  readonly ordersShipped: Counter<string>;
+  readonly ordersDelivered: Counter<string>;
   readonly inventoryReserved: Counter<string>;
   readonly inventoryAdjusted: Counter<string>;
 
@@ -23,6 +25,16 @@ export class BusinessMetricsService {
     this.ordersCancelled = new Counter({
       name: 'orders_cancelled_total',
       help: 'Total orders cancelled',
+      labelNames: ['tenant_id'],
+    });
+    this.ordersShipped = new Counter({
+      name: 'orders_shipped_total',
+      help: 'Total orders shipped',
+      labelNames: ['tenant_id'],
+    });
+    this.ordersDelivered = new Counter({
+      name: 'orders_delivered_total',
+      help: 'Total orders delivered',
       labelNames: ['tenant_id'],
     });
     this.inventoryReserved = new Counter({

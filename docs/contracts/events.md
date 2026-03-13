@@ -1,6 +1,6 @@
 # RabbitMQ Event Contracts
 
-Technical specification of event contracts between the B2B platform backend services. Events are published via transactional outbox patterns and consumed via RabbitMQ exchanges and queues.
+Technical specification of event contracts between the B2B platform backend services. JSON Schema definitions are in `schemas/` (see [SCHEMA_REGISTRY.md](SCHEMA_REGISTRY.md)). Events are published via transactional outbox patterns and consumed via RabbitMQ exchanges and queues.
 
 ## Services overview
 

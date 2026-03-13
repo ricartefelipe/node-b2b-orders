@@ -14,6 +14,7 @@ import {
   encodeCursor,
   resolveLimit,
 } from '../../shared/pagination/cursor';
+import { resolveInventorySort } from '../../shared/sorting/sort-query.dto';
 import { AdjustmentType } from './dto';
 
 @Injectable()
@@ -29,6 +30,8 @@ export class InventoryService {
     tenantId: string,
     sku?: string,
     cursor?: string,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc',
     rawLimit?: number,
   ): Promise<PaginatedResponse<any>> {
     const limit = resolveLimit(rawLimit);
@@ -37,7 +40,7 @@ export class InventoryService {
 
     const findArgs: Record<string, unknown> = {
       where,
-      orderBy: { sku: 'asc' as const },
+      orderBy: resolveInventorySort(sortBy, sortOrder),
       take: limit + 1,
     };
 

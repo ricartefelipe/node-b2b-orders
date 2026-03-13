@@ -26,6 +26,7 @@ async function main() {
     'products:write',
     'admin:write',
     'profile:read',
+    'analytics:read',
   ];
   for (const code of perms) {
     await prisma.permission.upsert({ where: { code }, update: {}, create: { code } });
@@ -33,8 +34,8 @@ async function main() {
 
   const roleMap: Record<string, string[]> = {
     admin: perms,
-    ops: ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'products:read', 'products:write', 'profile:read'],
-    sales: ['orders:read', 'inventory:read', 'products:read', 'profile:read'],
+    ops: ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'products:read', 'products:write', 'profile:read', 'analytics:read'],
+    sales: ['orders:read', 'inventory:read', 'products:read', 'profile:read', 'analytics:read'],
   };
 
   for (const [roleName, pList] of Object.entries(roleMap)) {
@@ -86,6 +87,11 @@ async function main() {
     {
       permissionCode: 'profile:read',
       allowedPlans: ['free', 'pro', 'enterprise'],
+      allowedRegions: ['region-a', 'region-b'],
+    },
+    {
+      permissionCode: 'analytics:read',
+      allowedPlans: ['pro', 'enterprise'],
       allowedRegions: ['region-a', 'region-b'],
     },
   ];
@@ -199,6 +205,202 @@ async function main() {
       update: {},
       create: { tenantId, sku: item.sku, availableQty: item.availableQty, reservedQty: 0 },
     });
+  }
+
+  // --- Additional tenant ---
+  const tenantId2 = '00000000-0000-0000-0000-000000000003';
+  await prisma.tenant.upsert({
+    where: { id: tenantId2 },
+    update: {},
+    create: { id: tenantId2, name: 'Acme Distribuidora', plan: 'pro', region: 'sa-east-1' },
+  });
+
+  // Products and inventory for second tenant
+  for (const p of products) {
+    await prisma.product.upsert({
+      where: { tenantId_sku: { tenantId: tenantId2, sku: p.sku } },
+      update: {},
+      create: {
+        tenantId: tenantId2,
+        sku: p.sku,
+        name: p.name,
+        price: p.price,
+        currency: p.currency,
+        category: p.category,
+        description: p.description,
+        imageUrl: p.imageUrl,
+        rating: p.rating,
+        reviewCount: p.reviewCount,
+      },
+    });
+  }
+  for (const item of inventoryItems) {
+    await prisma.inventoryItem.upsert({
+      where: { tenantId_sku: { tenantId: tenantId2, sku: item.sku } },
+      update: {},
+      create: { tenantId: tenantId2, sku: item.sku, availableQty: item.availableQty, reservedQty: 0 },
+    });
+  }
+
+  // --- Orders (15 orders, varied statuses, 3 months) ---
+  const orderDefs = [
+    { id: 'a0000001-0000-4000-8000-000000000001', tenantId, customerId: 'cust-abc-001', status: 'CREATED', createdAt: new Date('2025-12-15T09:00:00Z'), items: [{ sku: 'ELET-001', qty: 2, price: 4899.90 }] },
+    { id: 'a0000002-0000-4000-8000-000000000002', tenantId, customerId: 'cust-xyz-001', status: 'CREATED', createdAt: new Date('2025-12-22T14:30:00Z'), items: [{ sku: 'ESCR-001', qty: 1, price: 2199.00 }, { sku: 'ELET-003', qty: 5, price: 489.90 }] },
+    { id: 'a0000003-0000-4000-8000-000000000003', tenantId, customerId: 'cust-sp-001', status: 'CONFIRMED', createdAt: new Date('2025-12-28T11:15:00Z'), items: [{ sku: 'IND-001', qty: 1, price: 1899.00 }] },
+    { id: 'a0000004-0000-4000-8000-000000000004', tenantId, customerId: 'cust-sul-001', status: 'CONFIRMED', createdAt: new Date('2026-01-05T16:45:00Z'), items: [{ sku: 'SEG-001', qty: 4, price: 599.90 }, { sku: 'SEG-002', qty: 1, price: 1299.00 }] },
+    { id: 'a0000005-0000-4000-8000-000000000005', tenantId: tenantId2, customerId: 'cust-log-001', status: 'CONFIRMED', createdAt: new Date('2026-01-12T08:20:00Z'), items: [{ sku: 'LIMP-001', qty: 1, price: 3299.00 }, { sku: 'LIMP-002', qty: 2, price: 2499.00 }] },
+    { id: 'a0000006-0000-4000-8000-000000000006', tenantId, customerId: 'cust-metal-001', status: 'SHIPPED', createdAt: new Date('2025-12-18T10:00:00Z'), shippedAt: new Date('2025-12-20T14:00:00Z'), trackingCode: 'BR123456789', trackingUrl: 'https://correios.com.br/rastreio/BR123456789', items: [{ sku: 'IND-003', qty: 1, price: 4599.00 }] },
+    { id: 'a0000007-0000-4000-8000-000000000007', tenantId, customerId: 'cust-off-001', status: 'SHIPPED', createdAt: new Date('2026-01-02T09:30:00Z'), shippedAt: new Date('2026-01-04T11:00:00Z'), trackingCode: 'JADEF123456', trackingUrl: 'https://jadlog.com/rastreio/JADEF123456', items: [{ sku: 'ESCR-002', qty: 2, price: 3499.00 }, { sku: 'ESCR-001', qty: 2, price: 2199.00 }] },
+    { id: 'a0000008-0000-4000-8000-000000000008', tenantId: tenantId2, customerId: 'cust-var-001', status: 'SHIPPED', createdAt: new Date('2026-01-15T13:00:00Z'), shippedAt: new Date('2026-01-17T09:00:00Z'), trackingCode: 'AZUL987654', trackingUrl: 'https://azulcargo.com/rastreio/AZUL987654', items: [{ sku: 'ELET-002', qty: 3, price: 3299.00 }] },
+    { id: 'a0000009-0000-4000-8000-000000000009', tenantId, customerId: 'cust-tec-001', status: 'SHIPPED', createdAt: new Date('2026-02-01T10:00:00Z'), shippedAt: new Date('2026-02-03T08:00:00Z'), trackingCode: 'TNT543210', trackingUrl: 'https://tnt.com/rastreio/TNT543210', items: [{ sku: 'ELET-001', qty: 5, price: 4899.90 }, { sku: 'ELET-004', qty: 10, price: 259.90 }, { sku: 'ELET-005', qty: 5, price: 349.90 }] },
+    { id: 'a0000010-0000-4000-8000-000000000010', tenantId, customerId: 'cust-ferr-001', status: 'DELIVERED', createdAt: new Date('2025-12-10T08:00:00Z'), shippedAt: new Date('2025-12-12T10:00:00Z'), deliveredAt: new Date('2025-12-15T16:30:00Z'), trackingCode: 'BR111222333', trackingUrl: 'https://correios.com.br/rastreio/BR111222333', items: [{ sku: 'IND-005', qty: 3, price: 459.90 }] },
+    { id: 'a0000011-0000-4000-8000-000000000011', tenantId, customerId: 'cust-const-001', status: 'DELIVERED', createdAt: new Date('2025-12-20T11:00:00Z'), shippedAt: new Date('2025-12-22T09:00:00Z'), deliveredAt: new Date('2025-12-24T14:00:00Z'), trackingCode: 'BR444555666', trackingUrl: 'https://correios.com.br/rastreio/BR444555666', items: [{ sku: 'IND-004', qty: 5, price: 689.90 }, { sku: 'IND-002', qty: 1, price: 2799.00 }] },
+    { id: 'a0000012-0000-4000-8000-000000000012', tenantId: tenantId2, customerId: 'cust-mg-001', status: 'DELIVERED', createdAt: new Date('2026-01-08T14:00:00Z'), shippedAt: new Date('2026-01-10T08:00:00Z'), deliveredAt: new Date('2026-01-13T17:00:00Z'), trackingCode: 'JAD789012', trackingUrl: 'https://jadlog.com/rastreio/JAD789012', items: [{ sku: 'SEG-005', qty: 1, price: 2199.00 }, { sku: 'SEG-003', qty: 2, price: 899.90 }] },
+    { id: 'a0000013-0000-4000-8000-000000000013', tenantId, customerId: 'cust-hosp-001', status: 'DELIVERED', createdAt: new Date('2026-01-25T09:00:00Z'), shippedAt: new Date('2026-01-27T11:00:00Z'), deliveredAt: new Date('2026-01-30T10:00:00Z'), trackingCode: 'AZUL345678', trackingUrl: 'https://azulcargo.com/rastreio/AZUL345678', items: [{ sku: 'LIMP-004', qty: 20, price: 129.90 }, { sku: 'LIMP-005', qty: 10, price: 349.90 }] },
+    { id: 'a0000014-0000-4000-8000-000000000014', tenantId, customerId: 'cust-arm-001', status: 'DELIVERED', createdAt: new Date('2026-02-20T08:00:00Z'), shippedAt: new Date('2026-02-22T09:00:00Z'), deliveredAt: new Date('2026-02-25T15:00:00Z'), trackingCode: 'TNT999888', trackingUrl: 'https://tnt.com/rastreio/TNT999888', items: [{ sku: 'ESCR-003', qty: 50, price: 79.90 }, { sku: 'ESCR-004', qty: 15, price: 189.90 }] },
+    { id: 'a0000015-0000-4000-8000-000000000015', tenantId: tenantId2, customerId: 'cust-canc-001', status: 'CANCELLED', createdAt: new Date('2026-03-05T12:00:00Z'), items: [{ sku: 'SEG-004', qty: 2, price: 1599.00 }] },
+  ];
+
+  let orderItemSeq = 1;
+  for (const def of orderDefs) {
+    const totalAmount = def.items.reduce((sum, i) => sum + i.price * i.qty, 0);
+    await prisma.order.upsert({
+      where: { id: def.id },
+      update: {},
+      create: {
+        id: def.id,
+        tenantId: def.tenantId,
+        customerId: def.customerId,
+        status: def.status,
+        totalAmount,
+        trackingCode: def.trackingCode ?? null,
+        trackingUrl: def.trackingUrl ?? null,
+        shippedAt: def.shippedAt ?? null,
+        deliveredAt: def.deliveredAt ?? null,
+        createdAt: def.createdAt,
+      },
+    });
+    for (let i = 0; i < def.items.length; i++) {
+      const item = def.items[i];
+      const itemId = `b${String(orderItemSeq).padStart(7, '0')}-0000-4000-8000-${String(orderItemSeq).padStart(12, '0')}`;
+      orderItemSeq++;
+      await prisma.orderItem.upsert({
+        where: { id: itemId },
+        update: {},
+        create: {
+          id: itemId,
+          orderId: def.id,
+          sku: item.sku,
+          qty: item.qty,
+          price: item.price,
+        },
+      });
+    }
+  }
+
+  // --- Inventory Adjustments (20) ---
+  const adjustmentDefs = [
+    { tenantId, sku: 'ELET-001', type: 'IN', qty: 50, reason: 'Recebimento NF 12345', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-001', idempotencyKey: 'adj-seed-001', createdAt: new Date('2025-12-16T10:00:00Z') },
+    { tenantId, sku: 'ESCR-001', type: 'OUT', qty: 2, reason: 'Pedido #ORD-a0000002', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-002', idempotencyKey: 'adj-seed-002', createdAt: new Date('2025-12-23T14:00:00Z') },
+    { tenantId, sku: 'IND-001', type: 'ADJUSTMENT', qty: 5, reason: 'Inventário trimestral - ajuste', actorSub: 'admin@local', correlationId: 'corr-adj-003', idempotencyKey: 'adj-seed-003', createdAt: new Date('2025-12-28T09:00:00Z') },
+    { tenantId, sku: 'SEG-001', type: 'IN', qty: 20, reason: 'Recebimento NF 12389', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-004', idempotencyKey: 'adj-seed-004', createdAt: new Date('2026-01-06T11:00:00Z') },
+    { tenantId, sku: 'LIMP-001', type: 'OUT', qty: 1, reason: 'Pedido #ORD-a0000005', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-005', idempotencyKey: 'adj-seed-005', createdAt: new Date('2026-01-13T08:00:00Z') },
+    { tenantId, sku: 'IND-003', type: 'OUT', qty: 1, reason: 'Pedido #ORD-a0000006', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-006', idempotencyKey: 'adj-seed-006', createdAt: new Date('2025-12-21T14:00:00Z') },
+    { tenantId, sku: 'ELET-001', type: 'OUT', qty: 5, reason: 'Pedido #ORD-a0000009', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-007', idempotencyKey: 'adj-seed-007', createdAt: new Date('2026-02-04T08:00:00Z') },
+    { tenantId, sku: 'ELET-004', type: 'OUT', qty: 10, reason: 'Pedido #ORD-a0000009', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-008', idempotencyKey: 'adj-seed-008', createdAt: new Date('2026-02-04T08:00:00Z') },
+    { tenantId, sku: 'IND-005', type: 'IN', qty: 100, reason: 'Recebimento NF 12400', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-009', idempotencyKey: 'adj-seed-009', createdAt: new Date('2025-12-11T10:00:00Z') },
+    { tenantId, sku: 'IND-004', type: 'ADJUSTMENT', qty: -2, reason: 'Inventário trimestral - ajuste', actorSub: 'admin@local', correlationId: 'corr-adj-010', idempotencyKey: 'adj-seed-010', createdAt: new Date('2025-12-30T09:00:00Z') },
+    { tenantId: tenantId2, sku: 'LIMP-001', type: 'IN', qty: 10, reason: 'Recebimento NF 20001', actorSub: 'ops@acme.example.com', correlationId: 'corr-adj-011', idempotencyKey: 'adj-seed-011', createdAt: new Date('2026-01-10T10:00:00Z') },
+    { tenantId: tenantId2, sku: 'LIMP-002', type: 'OUT', qty: 2, reason: 'Pedido #ORD-a0000005', actorSub: 'ops@acme.example.com', correlationId: 'corr-adj-012', idempotencyKey: 'adj-seed-012', createdAt: new Date('2026-01-13T09:00:00Z') },
+    { tenantId, sku: 'ESCR-002', type: 'IN', qty: 5, reason: 'Recebimento NF 12410', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-013', idempotencyKey: 'adj-seed-013', createdAt: new Date('2026-01-03T11:00:00Z') },
+    { tenantId, sku: 'ESCR-002', type: 'OUT', qty: 2, reason: 'Pedido #ORD-a0000007', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-014', idempotencyKey: 'adj-seed-014', createdAt: new Date('2026-01-05T11:00:00Z') },
+    { tenantId: tenantId2, sku: 'ELET-002', type: 'OUT', qty: 3, reason: 'Pedido #ORD-a0000008', actorSub: 'ops@acme.example.com', correlationId: 'corr-adj-015', idempotencyKey: 'adj-seed-015', createdAt: new Date('2026-01-18T09:00:00Z') },
+    { tenantId, sku: 'LIMP-004', type: 'IN', qty: 200, reason: 'Recebimento NF 12450', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-016', idempotencyKey: 'adj-seed-016', createdAt: new Date('2026-01-24T10:00:00Z') },
+    { tenantId, sku: 'LIMP-004', type: 'OUT', qty: 20, reason: 'Pedido #ORD-a0000013', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-017', idempotencyKey: 'adj-seed-017', createdAt: new Date('2026-01-28T08:00:00Z') },
+    { tenantId, sku: 'ESCR-003', type: 'IN', qty: 100, reason: 'Recebimento NF 12470', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-018', idempotencyKey: 'adj-seed-018', createdAt: new Date('2026-02-19T11:00:00Z') },
+    { tenantId, sku: 'ESCR-003', type: 'OUT', qty: 50, reason: 'Pedido #ORD-a0000014', actorSub: 'ops@demo.example.com', correlationId: 'corr-adj-019', idempotencyKey: 'adj-seed-019', createdAt: new Date('2026-02-23T09:00:00Z') },
+    { tenantId: tenantId2, sku: 'SEG-004', type: 'ADJUSTMENT', qty: 2, reason: 'Devolução cancelamento - Pedido #ORD-a0000015', actorSub: 'ops@acme.example.com', correlationId: 'corr-adj-020', idempotencyKey: 'adj-seed-020', createdAt: new Date('2026-03-06T14:00:00Z') },
+  ];
+
+  for (const adj of adjustmentDefs) {
+    const existing = await prisma.inventoryAdjustment.findFirst({
+      where: { idempotencyKey: adj.idempotencyKey },
+    });
+    if (!existing) {
+      await prisma.inventoryAdjustment.create({
+        data: {
+          tenantId: adj.tenantId,
+          sku: adj.sku,
+          type: adj.type,
+          qty: adj.qty,
+          reason: adj.reason,
+          actorSub: adj.actorSub,
+          correlationId: adj.correlationId,
+          idempotencyKey: adj.idempotencyKey,
+          createdAt: adj.createdAt,
+        },
+      });
+    }
+  }
+
+  // --- Feature Flags (3 for tenant_demo) ---
+  await prisma.featureFlag.upsert({
+    where: { tenantId_name: { tenantId, name: 'fast_checkout' } },
+    update: { enabled: true, rolloutPercent: 100, allowedRoles: [] },
+    create: { tenantId, name: 'fast_checkout', enabled: true, rolloutPercent: 100, allowedRoles: [] },
+  });
+  await prisma.featureFlag.upsert({
+    where: { tenantId_name: { tenantId, name: 'ai_recommendations' } },
+    update: { enabled: true, rolloutPercent: 50, allowedRoles: ['admin'] },
+    create: { tenantId, name: 'ai_recommendations', enabled: true, rolloutPercent: 50, allowedRoles: ['admin'] },
+  });
+  await prisma.featureFlag.upsert({
+    where: { tenantId_name: { tenantId, name: 'dark_theme' } },
+    update: { enabled: true, rolloutPercent: 100, allowedRoles: [] },
+    create: { tenantId, name: 'dark_theme', enabled: true, rolloutPercent: 100, allowedRoles: [] },
+  });
+
+  // --- Audit Log (20 entries) ---
+  const auditDefs = [
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'ORDER_CREATED', target: 'a0000001-0000-4000-8000-000000000001', detail: { orderId: 'a0000001-0000-4000-8000-000000000001', customerId: 'cust-abc-001', totalAmount: 9799.80 }, correlationId: 'audit-001', createdAt: new Date('2025-12-15T09:01:00Z') },
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'ORDER_SHIPPED', target: 'a0000006-0000-4000-8000-000000000006', detail: { orderId: 'a0000006-0000-4000-8000-000000000006', trackingCode: 'BR123456789', carrier: 'Correios' }, correlationId: 'audit-002', createdAt: new Date('2025-12-20T14:05:00Z') },
+    { tenantId, actorSub: 'admin@local', action: 'PRODUCT_UPDATED', target: 'ELET-001', detail: { sku: 'ELET-001', change: 'price_update', oldPrice: 4799.90, newPrice: 4899.90 }, correlationId: 'audit-003', createdAt: new Date('2025-12-18T10:00:00Z') },
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'INVENTORY_ADJUSTED', target: 'ELET-001', detail: { sku: 'ELET-001', type: 'IN', qty: 50, reason: 'Recebimento NF 12345' }, correlationId: 'audit-004', createdAt: new Date('2025-12-16T10:01:00Z') },
+    { tenantId: null, actorSub: 'admin@local', action: 'LOGIN', target: 'admin@local', detail: { success: true, ip: '192.168.1.1' }, correlationId: 'audit-005', createdAt: new Date('2025-12-15T08:55:00Z') },
+    { tenantId, actorSub: 'sales@demo.example.com', action: 'LOGIN', target: 'sales@demo.example.com', detail: { success: true, tenantId }, correlationId: 'audit-006', createdAt: new Date('2025-12-22T14:35:00Z') },
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'ORDER_CREATED', target: 'a0000002-0000-4000-8000-000000000002', detail: { orderId: 'a0000002-0000-4000-8000-000000000002', customerId: 'cust-xyz-001', totalAmount: 4648.50 }, correlationId: 'audit-007', createdAt: new Date('2025-12-22T14:31:00Z') },
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'ORDER_CONFIRMED', target: 'a0000003-0000-4000-8000-000000000003', detail: { orderId: 'a0000003-0000-4000-8000-000000000003' }, correlationId: 'audit-008', createdAt: new Date('2025-12-29T08:00:00Z') },
+    { tenantId: tenantId2, actorSub: 'ops@acme.example.com', action: 'ORDER_SHIPPED', target: 'a0000008-0000-4000-8000-000000000008', detail: { orderId: 'a0000008-0000-4000-8000-000000000008', trackingCode: 'AZUL987654' }, correlationId: 'audit-009', createdAt: new Date('2026-01-17T09:05:00Z') },
+    { tenantId, actorSub: 'admin@local', action: 'FEATURE_FLAG_UPDATED', target: 'fast_checkout', detail: { flag: 'fast_checkout', enabled: true, rolloutPercent: 100 }, correlationId: 'audit-010', createdAt: new Date('2026-01-02T09:00:00Z') },
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'ORDER_DELIVERED', target: 'a0000010-0000-4000-8000-000000000010', detail: { orderId: 'a0000010-0000-4000-8000-000000000010', deliveredAt: '2025-12-15T16:30:00Z' }, correlationId: 'audit-011', createdAt: new Date('2025-12-15T16:35:00Z') },
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'INVENTORY_ADJUSTED', target: 'IND-001', detail: { sku: 'IND-001', type: 'ADJUSTMENT', qty: 5 }, correlationId: 'audit-012', createdAt: new Date('2025-12-28T09:01:00Z') },
+    { tenantId: tenantId2, actorSub: 'ops@acme.example.com', action: 'ORDER_CANCELLED', target: 'a0000015-0000-4000-8000-000000000015', detail: { orderId: 'a0000015-0000-4000-8000-000000000015', reason: 'Solicitação do cliente' }, correlationId: 'audit-013', createdAt: new Date('2026-03-06T10:00:00Z') },
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'ORDER_SHIPPED', target: 'a0000007-0000-4000-8000-000000000007', detail: { orderId: 'a0000007-0000-4000-8000-000000000007', trackingCode: 'JADEF123456' }, correlationId: 'audit-014', createdAt: new Date('2026-01-04T11:05:00Z') },
+    { tenantId, actorSub: 'admin@local', action: 'PRODUCT_UPDATED', target: 'ESCR-002', detail: { sku: 'ESCR-002', change: 'stock_check' }, correlationId: 'audit-015', createdAt: new Date('2026-01-04T15:00:00Z') },
+    { tenantId, actorSub: 'sales@demo.example.com', action: 'ORDER_CREATED', target: 'a0000009-0000-4000-8000-000000000009', detail: { orderId: 'a0000009-0000-4000-8000-000000000009', customerId: 'cust-tec-001' }, correlationId: 'audit-016', createdAt: new Date('2026-02-01T10:01:00Z') },
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'ORDER_DELIVERED', target: 'a0000014-0000-4000-8000-000000000014', detail: { orderId: 'a0000014-0000-4000-8000-000000000014' }, correlationId: 'audit-017', createdAt: new Date('2026-02-25T15:05:00Z') },
+    { tenantId: tenantId2, actorSub: 'ops@acme.example.com', action: 'INVENTORY_ADJUSTED', target: 'LIMP-001', detail: { sku: 'LIMP-001', type: 'IN', qty: 10 }, correlationId: 'audit-018', createdAt: new Date('2026-01-10T10:01:00Z') },
+    { tenantId, actorSub: 'admin@local', action: 'ACCESS_DENIED', target: 'admin:write', detail: { userId: 'sales@demo.example.com', permission: 'admin:write' }, correlationId: 'audit-019', createdAt: new Date('2026-02-10T11:00:00Z') },
+    { tenantId, actorSub: 'ops@demo.example.com', action: 'LOGIN', target: 'ops@demo.example.com', detail: { success: true }, correlationId: 'audit-020', createdAt: new Date('2026-03-12T09:00:00Z') },
+  ];
+
+  for (const a of auditDefs) {
+    const existing = await prisma.auditLog.findFirst({
+      where: { correlationId: a.correlationId },
+    });
+    if (!existing) {
+      await prisma.auditLog.create({
+        data: {
+          tenantId: a.tenantId,
+          actorSub: a.actorSub,
+          action: a.action,
+          target: a.target,
+          detail: a.detail,
+          correlationId: a.correlationId,
+          createdAt: a.createdAt,
+        },
+      });
+    }
   }
 
   console.log('Seed completed');
