@@ -65,12 +65,17 @@ model RolePermission {
 }
 
 model Policy {
-  id            String   @id @default(uuid())
-  permissionCode String  @unique
-  effect        String   @default("allow")
-  allowedPlans  String[]
-  allowedRegions String[]
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid())
+  permissionCode String   @unique @map("permission_code")
+  effect         String   @default("ALLOW")
+  allowedPlans   String   @default("[]") @map("allowed_plans")
+  allowedRegions String   @default("[]") @map("allowed_regions")
+  enabled        Boolean  @default(true)
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @map("updated_at")
+
+  @@map("policies")
 }
 
 model FeatureFlag {
