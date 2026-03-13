@@ -49,62 +49,27 @@ async function main() {
   }
 
   const policies = [
-    {
-      permissionCode: 'orders:write',
-      allowedPlans: ['pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b'],
-    },
-    {
-      permissionCode: 'orders:read',
-      allowedPlans: ['free', 'pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b'],
-    },
-    {
-      permissionCode: 'inventory:read',
-      allowedPlans: ['free', 'pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b'],
-    },
-    {
-      permissionCode: 'inventory:write',
-      allowedPlans: ['pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b'],
-    },
-    {
-      permissionCode: 'products:read',
-      allowedPlans: ['free', 'pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b'],
-    },
-    {
-      permissionCode: 'products:write',
-      allowedPlans: ['pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b'],
-    },
-    {
-      permissionCode: 'admin:write',
-      allowedPlans: ['enterprise'],
-      allowedRegions: ['region-a', 'region-b'],
-    },
-    {
-      permissionCode: 'profile:read',
-      allowedPlans: ['free', 'pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b'],
-    },
-    {
-      permissionCode: 'analytics:read',
-      allowedPlans: ['pro', 'enterprise'],
-      allowedRegions: ['region-a', 'region-b'],
-    },
+    { permissionCode: 'orders:write', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'orders:read', allowedPlans: '[]', allowedRegions: '[]' },
+    { permissionCode: 'inventory:read', allowedPlans: '[]', allowedRegions: '[]' },
+    { permissionCode: 'inventory:write', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'products:read', allowedPlans: '[]', allowedRegions: '[]' },
+    { permissionCode: 'products:write', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'admin:write', allowedPlans: '["enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'profile:read', allowedPlans: '[]', allowedRegions: '[]' },
+    { permissionCode: 'analytics:read', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
   ];
 
   for (const p of policies) {
     await prisma.policy.upsert({
       where: { permissionCode: p.permissionCode },
-      update: { effect: 'allow', allowedPlans: p.allowedPlans, allowedRegions: p.allowedRegions },
+      update: { effect: 'ALLOW', allowedPlans: p.allowedPlans, allowedRegions: p.allowedRegions, enabled: true },
       create: {
         permissionCode: p.permissionCode,
-        effect: 'allow',
+        effect: 'ALLOW',
         allowedPlans: p.allowedPlans,
         allowedRegions: p.allowedRegions,
+        enabled: true,
       },
     });
   }
