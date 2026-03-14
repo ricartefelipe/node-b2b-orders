@@ -18,6 +18,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 import { CursorPageQuery } from '../../shared/pagination/cursor';
 
 import { SortQueryDto } from '../../shared/sorting/sort-query.dto';
@@ -35,27 +36,27 @@ export class ProductsController {
 
   @Get('metadata/categories')
   @Permission('products:read')
-  async getCategories(@Req() req: any) {
-    const tenantId = req.headers['x-tenant-id'];
+  async getCategories(@Req() req: AuthRequest) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.products.getCategories(tenantId);
   }
 
   @Get('metadata/price-range')
   @Permission('products:read')
-  async getPriceRange(@Req() req: any) {
-    const tenantId = req.headers['x-tenant-id'];
+  async getPriceRange(@Req() req: AuthRequest) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.products.getPriceRange(tenantId);
   }
 
   @Get()
   @Permission('products:read')
   async list(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Query() filters: ProductFilterDto,
     @Query() page: CursorPageQuery,
     @Query() sort: SortQueryDto,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.products.list(
       tenantId,
       {
@@ -74,33 +75,33 @@ export class ProductsController {
 
   @Get(':id')
   @Permission('products:read')
-  async getOne(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
-    const tenantId = req.headers['x-tenant-id'];
+  async getOne(@Req() req: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.products.findOne(tenantId, id);
   }
 
   @Post()
   @Permission('products:write')
-  async create(@Req() req: any, @Body() body: CreateProductDto) {
-    const tenantId = req.headers['x-tenant-id'];
+  async create(@Req() req: AuthRequest, @Body() body: CreateProductDto) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.products.create(tenantId, body);
   }
 
   @Patch(':id')
   @Permission('products:write')
   async update(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateProductDto,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.products.update(tenantId, id, body);
   }
 
   @Delete(':id')
   @Permission('products:write')
-  async remove(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
-    const tenantId = req.headers['x-tenant-id'];
+  async remove(@Req() req: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.products.softDelete(tenantId, id);
   }
 }

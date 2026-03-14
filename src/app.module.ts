@@ -20,6 +20,7 @@ import { AiModule } from './interfaces/ai/ai.module';
 import { EventsModule } from './interfaces/events/events.module';
 import { ExportModule } from './interfaces/export/export.module';
 import { ImportModule } from './interfaces/import/import.module';
+import { WebhooksModule } from './interfaces/webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ImportModule } from './interfaces/import/import.module';
     EventsModule,
     ExportModule,
     ImportModule,
+    WebhooksModule,
   ],
 })
 export class AppModule {}
