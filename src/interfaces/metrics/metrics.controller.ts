@@ -1,4 +1,4 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Res, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import * as promClient from 'prom-client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
@@ -28,12 +28,12 @@ export class MetricsController {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
     } catch (e: any) {
-      return { status: 'fail', component: 'db', error: String(e?.message || e) };
+      throw new ServiceUnavailableException({ status: 'fail', component: 'db', error: String(e?.message || e) });
     }
     try {
       await this.redis.raw.ping();
     } catch (e: any) {
-      return { status: 'fail', component: 'redis', error: String(e?.message || e) };
+      throw new ServiceUnavailableException({ status: 'fail', component: 'redis', error: String(e?.message || e) });
     }
     return { status: 'ok' };
   }
