@@ -1,8 +1,14 @@
 # node-b2b-orders
 
-[![Node 20+](https://img.shields.io/badge/Node-20+-339933.svg)](https://nodejs.org/)
-[![NestJS](https://img.shields.io/badge/NestJS-10-E0234E.svg)](https://nestjs.com/)
+[![CI](https://github.com/ricartefelipe/node-b2b-orders/actions/workflows/ci.yml/badge.svg)](https://github.com/ricartefelipe/node-b2b-orders/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3-FF6600?logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
 
 API B2B de **Pedidos** e **Inventário** com NestJS, Fastify, Prisma, PostgreSQL, Redis e RabbitMQ. Implementa **Outbox Pattern**, **worker assíncrono**, **idempotência**, **RBAC/ABAC**, **rate limiting**, **multi-tenancy** e **observabilidade** (Prometheus/Grafana). Integra com **spring-saas-core** (JWT) e **py-payments-ledger** (eventos de pagamento).
 
