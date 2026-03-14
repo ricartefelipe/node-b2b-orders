@@ -168,7 +168,13 @@ export class OrdersService {
     return response;
   }
 
-  async cancelOrder(tenantId: string, correlationId: string, orderId: string, actorSub?: string) {
+  async cancelOrder(tenantId: string, correlationId: string, idempotencyKey: string, orderId: string, actorSub?: string) {
+    if (idempotencyKey) {
+      const idemKey = `idem:${tenantId}:cancel-order:${orderId}:${idempotencyKey}`;
+      const hit = await this.redis.idemGet(idemKey);
+      if (hit) return hit;
+    }
+
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
       include: { items: true },
@@ -204,13 +210,20 @@ export class OrdersService {
       correlationId,
     });
 
+    const response = { id: updated.id, status: updated.status };
+
+    if (idempotencyKey) {
+      const idemKey = `idem:${tenantId}:cancel-order:${orderId}:${idempotencyKey}`;
+      await this.redis.idemSet(idemKey, response, 24 * 3600);
+    }
+
     this.events.broadcast(tenantId, 'order.updated', {
       orderId: updated.id,
       status: updated.status,
       action: 'cancelled',
     });
 
-    return { id: updated.id, status: updated.status };
+    return response;
   }
 
   async shipOrder(

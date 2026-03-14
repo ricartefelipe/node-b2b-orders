@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
+import { DomainException } from '../exceptions/domain.exception';
 
 @Catch()
 export class ProblemDetailsFilter implements ExceptionFilter {
@@ -15,7 +16,11 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     let title = 'Internal Server Error';
     let detail = 'An unexpected error occurred';
 
-    if (exception instanceof HttpException) {
+    if (exception instanceof DomainException) {
+      status = exception.statusCode;
+      detail = exception.message;
+      title = this.statusToTitle(status);
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const response = exception.getResponse();
       if (typeof response === 'string') {

@@ -327,11 +327,20 @@ describe('OrdersService', () => {
     it('should throw NotFoundException when order not found', async () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
       await expect(
-        service.cancelOrder('t1', 'cid', 'order-1'),
+        service.cancelOrder('t1', 'cid', '', 'order-1'),
       ).rejects.toThrow(NotFoundException);
     });
 
+    it('should return cached response on idempotency hit', async () => {
+      const cached = { id: 'o1', status: 'CANCELLED' };
+      mockRedis.idemGet.mockResolvedValue(cached);
+      const result = await service.cancelOrder('t1', 'cid', 'idem-cancel-1', 'o1');
+      expect(result).toEqual(cached);
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
     it('should cancel an existing order successfully', async () => {
+      mockRedis.idemGet.mockResolvedValue(null);
       mockPrisma.order.findFirst.mockResolvedValue({
         id: 'o1',
         tenantId: 't1',
@@ -345,7 +354,7 @@ describe('OrdersService', () => {
       });
       mockTx.outboxEvent.create.mockResolvedValue({});
 
-      const result = await service.cancelOrder('t1', 'cid', 'o1', 'actor@test');
+      const result = await service.cancelOrder('t1', 'cid', 'idem-cancel-1', 'o1', 'actor@test');
 
       expect(result).toEqual({ id: 'o1', status: 'CANCELLED' });
       expect(mockTx.order.update).toHaveBeenCalledWith({
@@ -365,7 +374,7 @@ describe('OrdersService', () => {
       mockTx.order.update.mockResolvedValue({ id: 'o1', status: 'CANCELLED', items: [] });
       mockTx.outboxEvent.create.mockResolvedValue({});
 
-      await service.cancelOrder('t1', 'cid', 'o1');
+      await service.cancelOrder('t1', 'cid', '', 'o1');
 
       expect(mockMetrics.ordersCancelled.inc).toHaveBeenCalledWith({ tenant_id: 't1' });
     });
@@ -380,7 +389,7 @@ describe('OrdersService', () => {
       mockTx.order.update.mockResolvedValue({ id: 'o1', status: 'CANCELLED', items: [] });
       mockTx.outboxEvent.create.mockResolvedValue({});
 
-      await service.cancelOrder('t1', 'cid', 'o1');
+      await service.cancelOrder('t1', 'cid', '', 'o1');
 
       expect(mockTx.outboxEvent.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -401,7 +410,7 @@ describe('OrdersService', () => {
       mockTx.order.update.mockResolvedValue({ id: 'o1', status: 'CANCELLED', items: [] });
       mockTx.outboxEvent.create.mockResolvedValue({});
 
-      await service.cancelOrder('t1', 'cid', 'o1', 'actor@test');
+      await service.cancelOrder('t1', 'cid', '', 'o1', 'actor@test');
 
       expect(mockAudit.log).toHaveBeenCalledWith(
         expect.objectContaining({
