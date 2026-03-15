@@ -234,6 +234,9 @@ inventory_adjusted_total{tenant_id="tenant_demo",type="IN"}
 
 ## Variáveis de ambiente
 
+- **`.env`** — copie de `.env.example`; valores padrão são para **Docker** (hostnames `postgres`, `redis`, `rabbitmq`).
+- **`.env.local`** — (opcional, gitignored) overrides para rodar a API na sua máquina com infra no Docker. Copie de `.env.local.example` e ajuste se necessário. O app carrega `.env` e depois `.env.local` (este prevalece). Para portas alinhadas ao Fluxe B2B Suite, use o `local.env.example` em `fluxe-b2b-suite/config/env/`.
+
 | Variável | Default | Descrição |
 |----------|---------|-----------|
 | HTTP_PORT | 3000 | Porta da API |
@@ -254,12 +257,18 @@ inventory_adjusted_total{tenant_id="tenant_demo",type="IN"}
 
 ## Rodar localmente (sem Docker para API/Worker)
 
+Com infra no Docker (postgres, redis, rabbitmq), use `.env.local` para apontar para localhost (portas dependem do compose; para Fluxe B2B Suite: 5435, 6382, 5675 — ver `fluxe-b2b-suite/config/env/portas-local.md`).
+
 ```bash
+# Opção A: usar .env.local (recomendado)
+cp .env.local.example .env.local
+
+# Opção B: export manual (ajuste portas ao seu compose)
 docker compose up -d postgres redis rabbitmq
 
-export DATABASE_URL=postgresql://app:app@localhost:5433/app
-export REDIS_URL=redis://localhost:6380
-export RABBITMQ_URL=amqp://guest:guest@localhost:5673
+export DATABASE_URL=postgresql://app:app@localhost:5435/app
+export REDIS_URL=redis://localhost:6382
+export RABBITMQ_URL=amqp://guest:guest@localhost:5675
 
 npm ci
 npx prisma generate
