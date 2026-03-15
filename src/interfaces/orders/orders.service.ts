@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -363,6 +364,9 @@ export class OrdersService {
     return order;
   }
 
+  /** TTL do cache de listagem (segundos). Ver docs CACHE-REDIS-FRONT no repo fluxe-b2b-suite. */
+  private static readonly FRONT_LIST_ORDERS_TTL = 30;
+
   async listOrders(
     tenantId: string,
     status?: string,
@@ -379,6 +383,13 @@ export class OrdersService {
     },
   ): Promise<PaginatedResponse<any>> {
     const limit = resolveLimit(rawLimit);
+    const querySig = [cursor, limit, sortBy, sortOrder, status, filters ? JSON.stringify(filters) : ''].join('|');
+    const queryHash = createHash('sha256').update(querySig).digest('hex').slice(0, 16);
+    const cacheKey = `front:cache:orders:v1/orders:${tenantId}:${queryHash}`;
+
+    const cached = await this.redis.idemGet(cacheKey);
+    if (cached != null) return cached as PaginatedResponse<any>;
+
     const where = await this.buildListOrdersWhere(tenantId, status, filters);
 
     const findArgs: Record<string, unknown> = {
@@ -402,7 +413,9 @@ export class OrdersService {
     const last = data[data.length - 1];
     const nextCursor = hasMore && last ? encodeCursor(last.id, last.createdAt) : null;
 
-    return { data, nextCursor, hasMore };
+    const result = { data, nextCursor, hasMore };
+    await this.redis.idemSet(cacheKey, result, OrdersService.FRONT_LIST_ORDERS_TTL);
+    return result;
   }
 
   private async buildListOrdersWhere(
