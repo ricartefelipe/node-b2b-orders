@@ -25,7 +25,11 @@ import { TenantsProxyModule } from './interfaces/tenants-proxy/tenants-proxy.mod
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // .env = defaults (Docker); .env.local = overrides para rodar na máquina (gitignored)
+      envFilePath: ['.env', '.env.local'],
+    }),
     ScheduleModule.forRoot(),
     LoggingModule,
     PrismaModule,
