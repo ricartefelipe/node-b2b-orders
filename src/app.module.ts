@@ -21,6 +21,7 @@ import { EventsModule } from './interfaces/events/events.module';
 import { ExportModule } from './interfaces/export/export.module';
 import { ImportModule } from './interfaces/import/import.module';
 import { WebhooksModule } from './interfaces/webhooks/webhooks.module';
+import { TenantsProxyModule } from './interfaces/tenants-proxy/tenants-proxy.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { WebhooksModule } from './interfaces/webhooks/webhooks.module';
     ExportModule,
     ImportModule,
     WebhooksModule,
+    TenantsProxyModule,
   ],
 })
 export class AppModule {}
