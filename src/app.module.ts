@@ -21,10 +21,15 @@ import { EventsModule } from './interfaces/events/events.module';
 import { ExportModule } from './interfaces/export/export.module';
 import { ImportModule } from './interfaces/import/import.module';
 import { WebhooksModule } from './interfaces/webhooks/webhooks.module';
+import { TenantsProxyModule } from './interfaces/tenants-proxy/tenants-proxy.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // .env = defaults (Docker); .env.local = overrides para rodar na máquina (gitignored)
+      envFilePath: ['.env', '.env.local'],
+    }),
     ScheduleModule.forRoot(),
     LoggingModule,
     PrismaModule,
@@ -45,6 +50,7 @@ import { WebhooksModule } from './interfaces/webhooks/webhooks.module';
     ExportModule,
     ImportModule,
     WebhooksModule,
+    TenantsProxyModule,
   ],
 })
 export class AppModule {}
