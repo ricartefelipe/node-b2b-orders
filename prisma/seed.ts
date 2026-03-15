@@ -61,17 +61,23 @@ async function main() {
   ];
 
   for (const p of policies) {
-    await prisma.policy.upsert({
-      where: { permissionCode: p.permissionCode },
-      update: { effect: 'ALLOW', allowedPlans: p.allowedPlans, allowedRegions: p.allowedRegions, enabled: true },
-      create: {
-        permissionCode: p.permissionCode,
-        effect: 'ALLOW',
-        allowedPlans: p.allowedPlans,
-        allowedRegions: p.allowedRegions,
-        enabled: true,
-      },
-    });
+    const existing = await prisma.policy.findFirst({ where: { permissionCode: p.permissionCode } });
+    if (existing) {
+      await prisma.policy.update({
+        where: { id: existing.id },
+        data: { effect: 'ALLOW', allowedPlans: p.allowedPlans, allowedRegions: p.allowedRegions, enabled: true },
+      });
+    } else {
+      await prisma.policy.create({
+        data: {
+          permissionCode: p.permissionCode,
+          effect: 'ALLOW',
+          allowedPlans: p.allowedPlans,
+          allowedRegions: p.allowedRegions,
+          enabled: true,
+        },
+      });
+    }
   }
 
   const adminHash = await bcrypt.hash('admin123', 10);
