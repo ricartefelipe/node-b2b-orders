@@ -7,8 +7,9 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY . .
-RUN npx prisma generate
-RUN npm run build
+# Prisma generate: retry on network/DNS failure (EAI_AGAIN), sleep 30s between attempts
+RUN for i in 1 2 3 4 5; do (npx prisma generate && break) || sleep 30; done
+RUN for i in 1 2 3; do npm run build && break || sleep 15; done
 
 # ---
 FROM node:20-alpine AS runtime
