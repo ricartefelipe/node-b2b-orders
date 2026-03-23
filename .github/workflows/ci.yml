@@ -33,6 +33,9 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: npm audit (falha se HIGH/CRITICAL)
+        run: npm audit --audit-level=high
+
       - name: Validate OpenAPI spec exists
         run: |
           test -f docs/api/openapi.json && echo "OpenAPI JSON present"
