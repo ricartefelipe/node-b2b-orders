@@ -4,7 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { trace, SpanStatusCode } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 import { collectDefaultMetrics } from 'prom-client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -43,8 +43,9 @@ async function bootstrap() {
     .setVersion('1.0.0')
     .addBearerAuth()
     .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  // SwaggerModule espera INestApplication (Express); Fastify é compatível em runtime
+  const document = SwaggerModule.createDocument(app as any, config);
+  SwaggerModule.setup('docs', app as any, document);
 
   app.enableShutdownHooks();
 
@@ -53,7 +54,7 @@ async function bootstrap() {
   const fastify = app.getHttpAdapter().getInstance();
 
   const shutdown = async (signal: string) => {
-    console.log(`Received ${signal}, shutting down gracefully...`);
+    console.warn(`Received ${signal}, shutting down gracefully...`);
     try { await redis.raw.quit(); } catch { /* ignore */ }
     try { await prisma.$disconnect(); } catch { /* ignore */ }
     process.exit(0);
