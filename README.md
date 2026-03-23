@@ -297,6 +297,26 @@ npm run start:worker
 | `./scripts/logs.sh` | Logs em tempo real |
 | `./scripts/api-export.sh` | Exportar OpenAPI spec |
 
+### Testes E2E locais
+
+Os testes E2E exigem PostgreSQL, Redis e RabbitMQ. Use o `docker-compose.e2e.yml`:
+
+```bash
+docker compose -f docker-compose.e2e.yml up -d
+npm ci && npm run build
+npx prisma generate
+DATABASE_URL=postgresql://app:app@localhost:5432/orders_test npx prisma migrate deploy
+DATABASE_URL=postgresql://app:app@localhost:5432/orders_test npx prisma db seed
+
+DATABASE_URL=postgresql://app:app@localhost:5432/orders_test \
+REDIS_URL=redis://localhost:6379 \
+JWT_SECRET=e2e-test-secret-key-do-not-use-in-production \
+RABBITMQ_URL=amqp://guest:guest@localhost:5672 \
+npm run test:e2e
+```
+
+Comandos de verificação rápida:
+
 ```bash
 npm ci
 npm run lint
