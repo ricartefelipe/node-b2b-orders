@@ -374,7 +374,7 @@ async function main() {
     }
   }
 
-  console.log('Seed completed');
+  console.warn('Seed completed');
 }
 
 main()

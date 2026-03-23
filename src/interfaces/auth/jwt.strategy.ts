@@ -82,14 +82,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             }
       : undefined;
 
-    super({
+    const base = {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKeyProvider,
-      secretOrKey: !secretOrKeyProvider ? jwtSecret : undefined,
-      algorithms: useRs256 ? ['RS256'] : ['HS256'],
+      ignoreExpiration: false as const,
+      algorithms: (useRs256 ? ['RS256'] : ['HS256']) as ('RS256' | 'HS256')[],
       issuer,
-    });
+    };
+    if (secretOrKeyProvider) {
+      super({
+        ...base,
+        secretOrKeyProvider,
+      });
+    } else {
+      if (!jwtSecret) {
+        throw new Error('JWT_SECRET must be set when not using secretOrKeyProvider');
+      }
+      super({
+        ...base,
+        secretOrKey: jwtSecret,
+      });
+    }
   }
 
   async validate(payload: unknown) {
