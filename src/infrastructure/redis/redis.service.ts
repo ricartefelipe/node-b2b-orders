@@ -104,7 +104,6 @@ export class RedisService {
     );
     const allowed = Number(res[0]) === 1;
     const tokens = Math.floor(Number(res[1]));
-    const ttl = Number(res[2]);
     return { allowed, remaining: Math.max(0, tokens), retryAfterSeconds: allowed ? 0 : 1, limit };
   }
 
