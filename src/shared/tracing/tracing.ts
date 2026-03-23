@@ -31,18 +31,18 @@ if (OTEL_ENABLED) {
   });
 
   sdk.start();
-  console.log(`[tracing] OpenTelemetry started — exporting to ${endpoint}`);
+  console.warn(`[tracing] OpenTelemetry started — exporting to ${endpoint}`);
 
   const shutdown = () => {
     sdk
       ?.shutdown()
-      .then(() => console.log('[tracing] OpenTelemetry shut down'))
+      .then(() => console.warn('[tracing] OpenTelemetry shut down'))
       .catch((err) => console.error('[tracing] shutdown error', err));
   };
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 } else {
-  console.log('[tracing] OpenTelemetry disabled (OTEL_ENABLED=false)');
+  console.warn('[tracing] OpenTelemetry disabled (OTEL_ENABLED=false)');
 }
 
 export { sdk };
