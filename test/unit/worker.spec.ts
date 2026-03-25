@@ -92,6 +92,35 @@ describe('Worker handlers', () => {
         }),
       );
     });
+
+    it('should mark product out of stock when reservation exhausts availableQty', async () => {
+      mockPrisma.order.findFirst.mockResolvedValue({
+        id: 'o1',
+        tenantId: 't1',
+        items: [{ sku: 'SKU-LOW', qty: 3 }],
+      });
+      mockTx.inventoryItem.findUnique.mockResolvedValue({ availableQty: 3 });
+      mockTx.inventoryItem.update.mockResolvedValue({ availableQty: 0 });
+      await handleOrderMessage(
+        mockPrisma as unknown as PrismaClient,
+        'order.created',
+        { orderId: 'o1', tenantId: 't1' },
+      );
+      expect(mockTx.product.updateMany).toHaveBeenCalledWith({
+        where: { tenantId: 't1', sku: 'SKU-LOW', active: true },
+        data: { inStock: false },
+      });
+    });
+
+    it('should ignore unknown order routing keys', async () => {
+      await handleOrderMessage(
+        mockPrisma as unknown as PrismaClient,
+        'order.unknown',
+        { orderId: 'o1', tenantId: 't1' },
+      );
+      expect(mockPrisma.order.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleOrderMessage — order.cancelled', () => {
@@ -200,6 +229,23 @@ describe('Worker handlers', () => {
         mockPrisma as unknown as PrismaClient,
         'payment.settled',
         { orderId: 'o1', tenantId: 't1' },
+      );
+      expect(mockPrisma.order.update).toHaveBeenCalledWith({
+        where: { id: 'o1' },
+        data: { status: 'PAID' },
+      });
+    });
+
+    it('should accept snake_case order_id and tenant_id from ledger payloads', async () => {
+      mockPrisma.order.findFirst.mockResolvedValue({
+        id: 'o1',
+        tenantId: 't1',
+        status: 'CONFIRMED',
+      });
+      await handlePaymentMessage(
+        mockPrisma as unknown as PrismaClient,
+        'payment.settled',
+        { order_id: 'o1', tenant_id: 't1' },
       );
       expect(mockPrisma.order.update).toHaveBeenCalledWith({
         where: { id: 'o1' },
