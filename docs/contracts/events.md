@@ -1,9 +1,5 @@
 # RabbitMQ Event Contracts
 
-**Fonte de verdade (contrato):** repositório **spring-saas-core**, ficheiro `docs/contracts/events.md`. O texto abaixo espelha esse ficheiro; em caso de divergência, prevalece o Core.
-
-**Schemas neste repo (pedidos/inventário):** `docs/contracts/schemas/` — ver [SCHEMA_REGISTRY.md](SCHEMA_REGISTRY.md). Os schemas de tenant/policy/flag referidos mais abaixo existem no Core.
-
 Technical specification of event contracts between the B2B platform backend services. Events are published via transactional outbox patterns and consumed via RabbitMQ exchanges and queues.
 
 ## Services overview
@@ -172,13 +168,13 @@ Individual event schemas may extend these fields.
 
 ## Schema Validation
 
-Os **JSON Schema (draft-07)** canónicos (tenant/policy/flag) vivem no **spring-saas-core** em `docs/contracts/schemas/`. **Neste repositório** há schemas adicionais de pedidos/inventário em `docs/contracts/schemas/` — [SCHEMA_REGISTRY.md](SCHEMA_REGISTRY.md).
+Event contracts are formally defined as **JSON Schema (draft-07)** files in `docs/contracts/schemas/`:
 
-| Schema file (no Core) | Events covered | `$id` |
+| Schema file | Events covered | `$id` |
 |-------------|---------------|-------|
-| `tenant-event.schema.json` | `tenant.created`, `tenant.updated`; enum também `tenant.suspended`, `tenant.reactivated` (ainda não publicados pelo Core) | `https://fluxe.io/schemas/events/tenant-event/v1` |
-| `policy-event.schema.json` | `policy.created`, `policy.updated`, `policy.deleted` | `https://fluxe.io/schemas/events/policy-event/v1` |
-| `flag-event.schema.json` | `flag.created`, `flag.deleted`; enum ainda lista `flag.updated` mas em runtime **`flag.toggled`** | `https://fluxe.io/schemas/events/flag-event/v1` |
+| [`tenant-event.schema.json`](schemas/tenant-event.schema.json) | `tenant.created`, `tenant.updated`; enum also allows `tenant.suspended`, `tenant.reactivated` (not yet published by Core) | `https://fluxe.io/schemas/events/tenant-event/v1` |
+| [`policy-event.schema.json`](schemas/policy-event.schema.json) | `policy.created`, `policy.updated`, `policy.deleted` | `https://fluxe.io/schemas/events/policy-event/v1` |
+| [`flag-event.schema.json`](schemas/flag-event.schema.json) | `flag.created`, `flag.deleted`; enum still lists `flag.updated` but runtime emits **`flag.toggled`** for updates | `https://fluxe.io/schemas/events/flag-event/v1` |
 
 ### Versioning strategy
 
@@ -192,4 +188,10 @@ Schemas follow **URL-based versioning** through the `$id` field:
 
 ### How to validate
 
-Any JSON Schema draft-07 validator can be used. Paths in `spring-saas-core` for tenant/policy/flag; neste repo, usar os paths em `docs/contracts/schemas/` para eventos de orders conforme [SCHEMA_REGISTRY.md](SCHEMA_REGISTRY.md).
+Any JSON Schema draft-07 validator can be used. Example with `ajv-cli`:
+
+```bash
+npx ajv-cli validate -s docs/contracts/schemas/tenant-event.schema.json -d event.json
+```
+
+Or programmatically in Java tests using `everit-org/json-schema` or `networknt/json-schema-validator`.
