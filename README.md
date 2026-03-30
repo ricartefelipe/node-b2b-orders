@@ -370,7 +370,7 @@ Validação completa: `./scripts/smoke.sh`
 
 ## Staging — checklist de pedido (curl)
 
-Para repetir em **staging** (ex.: Railway) o fluxo mínimo **auth → POST /v1/orders → RESERVED → CONFIRMED**, use o checklist e o script na **fluxe-b2b-suite**: [`docs/CHECKLIST-PEDIDO-STAGING.md`](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/CHECKLIST-PEDIDO-STAGING.md) (`pnpm smoke:order-staging` com `ORDERS_SMOKE_URL`). O smoke HTTP leve pós-deploy continua em `scripts/smoke-post-merge.sh`.
+Para repetir em **staging** (ex.: Railway) o fluxo mínimo **auth → POST /v1/orders → RESERVED → CONFIRMED**, use o checklist e o script na **fluxe-b2b-suite**: [`docs/CHECKLIST-PEDIDO-STAGING.md`](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/CHECKLIST-PEDIDO-STAGING.md) (`pnpm smoke:order-staging` com `ORDERS_SMOKE_URL`). Opcional até **PAID**: `pnpm smoke:order-staging:paid` (publica `payment.settled` com `RABBITMQ_URL`) ou `pnpm smoke:order-staging:saga` (saga ledger + workers; só poll HTTP). O smoke HTTP leve pós-deploy continua em `scripts/smoke-post-merge.sh`.
 
 ---
 
