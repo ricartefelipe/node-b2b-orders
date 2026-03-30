@@ -367,6 +367,12 @@ Validação completa: `./scripts/smoke.sh`
 
 ---
 
+## Staging — checklist de pedido (curl)
+
+Para repetir em **staging** (ex.: Railway) o fluxo mínimo **auth → POST /v1/orders → RESERVED → CONFIRMED**, use o checklist e o script na **fluxe-b2b-suite**: [`docs/CHECKLIST-PEDIDO-STAGING.md`](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/CHECKLIST-PEDIDO-STAGING.md) (`pnpm smoke:order-staging` com `ORDERS_SMOKE_URL`). O smoke HTTP leve pós-deploy continua em `scripts/smoke-post-merge.sh`.
+
+---
+
 ## E2E com Fluxe B2B Suite
 
 Para integração com fluxe-b2b-suite e spring-saas-core, o login é feito no Core; esta API **valida** o JWT. Use o mesmo secret e issuer do Spring:
