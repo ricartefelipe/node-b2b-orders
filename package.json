@@ -85,6 +85,9 @@
   "engines": {
     "node": ">=20"
   },
+  "overrides": {
+    "path-to-regexp": "8.4.0"
+  },
   "prisma": {
     "seed": "node dist/prisma/seed.js"
   }
