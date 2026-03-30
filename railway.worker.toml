@@ -1,0 +1,15 @@
+# Configuração para o serviço **node-b2b-orders-worker** no Railway (mesmo repositório que a API).
+# No dashboard do serviço worker: Settings → Build → Config as code → apontar para este ficheiro
+# (`railway.worker.toml` na raiz do repo), ou o caminho absoluto que o Railway mostrar.
+#
+# A API continua a usar `railway.toml` (docker/api.Dockerfile).
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "docker/worker.Dockerfile"
+
+[deploy]
+# Worker não expõe HTTP; o Dockerfile define HEALTHCHECK em ficheiro (ficheiro heartbeat).
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+numReplicas = 1
