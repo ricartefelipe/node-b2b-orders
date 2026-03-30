@@ -360,6 +360,7 @@ Validação completa: `./scripts/smoke.sh`
 
 | Problema | Solução |
 |----------|---------|
+| Railway/PostgreSQL partilhado: erro `OutboxEvent` / tabela em falta | Aplicar DDL com **um statement por vez** (limitação Prisma prepared statement); ver `scripts/railway-create-outbox-event-table.cjs` e `railway ssh` + `base64` como no comentário do script. |
 | RabbitMQ "Connection refused" | `docker compose ps`; `./scripts/down.sh && ./scripts/up.sh` |
 | Banco fora de sync | `npx prisma generate`, `./scripts/migrate.sh`, `./scripts/seed.sh` |
 | Worker não processa | `./scripts/logs.sh`; RabbitMQ Admin → Queues → orders.dlq |
