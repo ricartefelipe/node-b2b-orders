@@ -25,6 +25,8 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./
 
+RUN chown -R app:app /app/node_modules /app/prisma
+
 USER app
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
