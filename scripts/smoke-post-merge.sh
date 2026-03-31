@@ -25,13 +25,14 @@ curl -sfS --max-time 20 "$BASE_URL/v1/healthz" >/dev/null || {
 }
 echo "[smoke] OK /v1/healthz"
 
-BODY=$(curl -sfS --max-time 20 "$BASE_URL/v1/docs-json") || {
-  echo "[smoke] FALHA: GET /v1/docs-json (Swagger)"
+# Swagger em /docs (JSON em /docs-json); o prefixo global v1 nao aplica a essas rotas no Nest.
+BODY=$(curl -sfS --max-time 20 "$BASE_URL/docs-json") || {
+  echo "[smoke] FALHA: GET /docs-json (Swagger)"
   exit 1
 }
 if ! grep -q '"openapi"' <<<"$BODY" && ! grep -q '"swagger"' <<<"$BODY"; then
   echo "[smoke] FALHA: documento OpenAPI inesperado"
   exit 1
 fi
-echo "[smoke] OK /v1/docs-json"
+echo "[smoke] OK /docs-json"
 echo "[smoke] concluido com sucesso"

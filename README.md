@@ -360,10 +360,17 @@ Validação completa: `./scripts/smoke.sh`
 
 | Problema | Solução |
 |----------|---------|
+| Railway/PostgreSQL partilhado: erro `OutboxEvent` / tabela em falta | Aplicar DDL com **um statement por vez** (limitação Prisma prepared statement); ver `scripts/railway-create-outbox-event-table.cjs` e `railway ssh` + `base64` como no comentário do script. |
 | RabbitMQ "Connection refused" | `docker compose ps`; `./scripts/down.sh && ./scripts/up.sh` |
 | Banco fora de sync | `npx prisma generate`, `./scripts/migrate.sh`, `./scripts/seed.sh` |
 | Worker não processa | `./scripts/logs.sh`; RabbitMQ Admin → Queues → orders.dlq |
 | Rate limit 429 | Rotas `/v1/docs`, `/v1/metrics`, `/v1/healthz`, `/v1/readyz` têm bypass; demais usam token bucket por tenant/sub |
+
+---
+
+## Staging — checklist de pedido (curl)
+
+Para repetir em **staging** (ex.: Railway) o fluxo mínimo **auth → POST /v1/orders → RESERVED → CONFIRMED**, use o checklist e o script na **fluxe-b2b-suite**: [`docs/CHECKLIST-PEDIDO-STAGING.md`](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/CHECKLIST-PEDIDO-STAGING.md) (`pnpm smoke:order-staging` com `ORDERS_SMOKE_URL`). Opcional até **PAID**: `pnpm smoke:order-staging:paid` (publica `payment.settled` com `RABBITMQ_URL`) ou `pnpm smoke:order-staging:saga` (saga ledger + workers; só poll HTTP). O smoke HTTP leve pós-deploy continua em `scripts/smoke-post-merge.sh`.
 
 ---
 
