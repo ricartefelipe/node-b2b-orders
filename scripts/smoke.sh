@@ -85,16 +85,25 @@ CONFIRM_JSON=$(curl -sS -X POST "$API_BASE/v1/orders/$ORDER_ID/confirm" \
 CONFIRM_STATUS=$(json_get "$CONFIRM_JSON" "status")
 assert_eq "$CONFIRM_STATUS" "CONFIRMED" "order confirmed"
 
+# Give the worker/outbox a moment to persist the CONFIRMED state.
+sleep 2
+
 # --- Simulate payment.settled (order->PAID) ---
 echo "[5b] Simulate payment.settled -> order PAID"
-# Script runs on host, so use localhost port for RabbitMQ. Suite uses fluxe-rabbitmq on 5675.
+# Script runs on host, so use localhost port for RabbitMQ.
+# In the Fluxe B2B Suite local stack, the RabbitMQ that the worker consumes is exposed on 5675.
 RABBIT_HOST="${RABBITMQ_HOST_URL:-amqp://guest:guest@localhost:5675}"
 RABBITMQ_URL="$RABBIT_HOST" node scripts/publish-payment-settled.js "$ORDER_ID" "$TENANT" 2>/dev/null || true
-sleep 2
-ORDER_PAID=$(curl -sS "$API_BASE/v1/orders/$ORDER_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "X-Tenant-Id: $TENANT")
-PAID_STATUS=$(json_get "$ORDER_PAID" "status")
+# Worker processes payment.settled asynchronously; give it time.
+PAID_STATUS=""
+for _ in 1 2 3 4 5 6; do
+  sleep 2
+  ORDER_PAID=$(curl -sS "$API_BASE/v1/orders/$ORDER_ID" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "X-Tenant-Id: $TENANT")
+  PAID_STATUS=$(json_get "$ORDER_PAID" "status")
+  [ "$PAID_STATUS" = "PAID" ] && break
+done
 assert_eq "$PAID_STATUS" "PAID" "order paid after payment.settled"
 
 # --- Tenant mismatch ---
