@@ -9,8 +9,7 @@ for i in 1 2 3; do
   fi
   echo "$out"
   if echo "$out" | grep -q "Error: P3005"; then
-    echo "[entrypoint] Existing schema sem baseline Prisma (P3005). Aplicando db push para baseline seguro..."
-    npx prisma db push
+    echo "[entrypoint] Existing schema sem baseline Prisma (P3005). Seguindo startup sem aplicar migration destrutiva."
     break
   fi
   echo "[entrypoint] Migrations failed (attempt $i). Retrying in 20s..."
