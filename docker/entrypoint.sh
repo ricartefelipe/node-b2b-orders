@@ -2,12 +2,22 @@
 set -e
 
 echo "[entrypoint] Running migrations..."
-for i in 1 2 3 4 5; do
-  if npx prisma migrate deploy; then
+for i in 1 2 3; do
+  if out=$(npx prisma migrate deploy 2>&1); then
+    echo "$out"
     break
   fi
-  echo "[entrypoint] Migrations failed (attempt $i). Retrying in 30s..."
-  sleep 30
+  echo "$out"
+  if echo "$out" | grep -q "Error: P3005"; then
+    echo "[entrypoint] Existing schema sem baseline Prisma (P3005). Seguindo startup sem aplicar migration destrutiva."
+    break
+  fi
+  echo "[entrypoint] Migrations failed (attempt $i). Retrying in 20s..."
+  if [ "$i" -eq 3 ]; then
+    echo "[entrypoint] Migration retries exhausted."
+    exit 1
+  fi
+  sleep 20
 done
 
 if [ "$NODE_ENV" = "staging" ]; then
