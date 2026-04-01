@@ -47,15 +47,19 @@ export class AbacGuard implements CanActivate {
       throw new ForbiddenException('Policy denies');
     }
 
-    const plan = (user.plan || 'free').toLowerCase();
-    const region = (user.region || 'region-a').toLowerCase();
+    const plan = (user.plan || 'free').trim().toLowerCase();
+    const region = (user.region || 'region-a').trim().toLowerCase();
 
-    const plans: string[] = this.parseJsonArray(policy.allowedPlans).map(p => String(p).toLowerCase());
+    const plans: string[] = this.parseJsonArray(policy.allowedPlans).map(p =>
+      String(p).trim().toLowerCase(),
+    );
     if (plans.length && !this.planAllowed(plan, plans)) {
       await this.logDenied(req, required, 'plan_not_allowed', `Plan '${plan}' not allowed`);
       throw new ForbiddenException(`Plan '${plan}' not allowed`);
     }
-    const regions: string[] = this.parseJsonArray(policy.allowedRegions).map(r => String(r).toLowerCase());
+    const regions: string[] = this.parseJsonArray(policy.allowedRegions).map(r =>
+      String(r).trim().toLowerCase(),
+    );
     if (regions.length && !regions.includes(region)) {
       await this.logDenied(req, required, 'region_not_allowed', `Region '${region}' not allowed`);
       throw new ForbiddenException(`Region '${region}' not allowed`);
