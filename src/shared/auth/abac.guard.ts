@@ -4,6 +4,14 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { PERMISSION_KEY } from './permissions.decorator';
 import { AuditService } from '../audit/audit.service';
 
+/** Ordem de planos (maior índice = tier mais alto). Usado para comparar plano do JWT com allowedPlans. */
+const PLAN_TIER: Record<string, number> = {
+  free: 0,
+  starter: 1,
+  pro: 2,
+  enterprise: 3,
+};
+
 @Injectable()
 export class AbacGuard implements CanActivate {
   constructor(
@@ -55,11 +63,18 @@ export class AbacGuard implements CanActivate {
     return true;
   }
 
-  /** Tenant enterprise inclui o mesmo acesso que pro nas políticas com lista de planos explícita. */
+  /**
+   * allowedPlans define o conjunto de tiers permitidos; interpretamos o mínimo exigido como
+   * min(tier) e permitimos qualquer tenant com tier >= esse mínimo (ex.: enterprise com política só ["pro"]).
+   */
   private planAllowed(plan: string, allowed: string[]): boolean {
     if (allowed.includes(plan)) return true;
-    if (plan === 'enterprise' && allowed.includes('pro')) return true;
-    return false;
+    const userTier = PLAN_TIER[plan];
+    if (userTier === undefined) return false;
+    const tiers = allowed.map(a => PLAN_TIER[a]).filter((t): t is number => t !== undefined);
+    if (tiers.length === 0) return false;
+    const minTier = Math.min(...tiers);
+    return userTier >= minTier;
   }
 
   private parseJsonArray(value: string | string[] | null | undefined): string[] {
