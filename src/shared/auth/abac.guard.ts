@@ -4,6 +4,14 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { PERMISSION_KEY } from './permissions.decorator';
 import { AuditService } from '../audit/audit.service';
 
+/** Ordem de planos (maior índice = tier mais alto). Usado para comparar plano do JWT com allowedPlans. */
+const PLAN_TIER: Record<string, number> = {
+  free: 0,
+  starter: 1,
+  pro: 2,
+  enterprise: 3,
+};
+
 @Injectable()
 export class AbacGuard implements CanActivate {
   constructor(
@@ -39,20 +47,38 @@ export class AbacGuard implements CanActivate {
       throw new ForbiddenException('Policy denies');
     }
 
-    const plan = user.plan || 'free';
-    const region = user.region || 'region-a';
+    const plan = (user.plan || 'free').trim().toLowerCase();
+    const region = (user.region || 'region-a').trim().toLowerCase();
 
-    const plans: string[] = this.parseJsonArray(policy.allowedPlans);
-    if (plans.length && !plans.includes(plan)) {
+    const plans: string[] = this.parseJsonArray(policy.allowedPlans).map(p =>
+      String(p).trim().toLowerCase(),
+    );
+    if (plans.length && !this.planAllowed(plan, plans)) {
       await this.logDenied(req, required, 'plan_not_allowed', `Plan '${plan}' not allowed`);
       throw new ForbiddenException(`Plan '${plan}' not allowed`);
     }
-    const regions: string[] = this.parseJsonArray(policy.allowedRegions);
+    const regions: string[] = this.parseJsonArray(policy.allowedRegions).map(r =>
+      String(r).trim().toLowerCase(),
+    );
     if (regions.length && !regions.includes(region)) {
       await this.logDenied(req, required, 'region_not_allowed', `Region '${region}' not allowed`);
       throw new ForbiddenException(`Region '${region}' not allowed`);
     }
     return true;
+  }
+
+  /**
+   * allowedPlans define o conjunto de tiers permitidos; interpretamos o mínimo exigido como
+   * min(tier) e permitimos qualquer tenant com tier >= esse mínimo (ex.: enterprise com política só ["pro"]).
+   */
+  private planAllowed(plan: string, allowed: string[]): boolean {
+    if (allowed.includes(plan)) return true;
+    const userTier = PLAN_TIER[plan];
+    if (userTier === undefined) return false;
+    const tiers = allowed.map(a => PLAN_TIER[a]).filter((t): t is number => t !== undefined);
+    if (tiers.length === 0) return false;
+    const minTier = Math.min(...tiers);
+    return userTier >= minTier;
   }
 
   private parseJsonArray(value: string | string[] | null | undefined): string[] {
