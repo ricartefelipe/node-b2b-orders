@@ -39,20 +39,27 @@ export class AbacGuard implements CanActivate {
       throw new ForbiddenException('Policy denies');
     }
 
-    const plan = user.plan || 'free';
-    const region = user.region || 'region-a';
+    const plan = (user.plan || 'free').toLowerCase();
+    const region = (user.region || 'region-a').toLowerCase();
 
-    const plans: string[] = this.parseJsonArray(policy.allowedPlans);
-    if (plans.length && !plans.includes(plan)) {
+    const plans: string[] = this.parseJsonArray(policy.allowedPlans).map(p => String(p).toLowerCase());
+    if (plans.length && !this.planAllowed(plan, plans)) {
       await this.logDenied(req, required, 'plan_not_allowed', `Plan '${plan}' not allowed`);
       throw new ForbiddenException(`Plan '${plan}' not allowed`);
     }
-    const regions: string[] = this.parseJsonArray(policy.allowedRegions);
+    const regions: string[] = this.parseJsonArray(policy.allowedRegions).map(r => String(r).toLowerCase());
     if (regions.length && !regions.includes(region)) {
       await this.logDenied(req, required, 'region_not_allowed', `Region '${region}' not allowed`);
       throw new ForbiddenException(`Region '${region}' not allowed`);
     }
     return true;
+  }
+
+  /** Tenant enterprise inclui o mesmo acesso que pro nas políticas com lista de planos explícita. */
+  private planAllowed(plan: string, allowed: string[]): boolean {
+    if (allowed.includes(plan)) return true;
+    if (plan === 'enterprise' && allowed.includes('pro')) return true;
+    return false;
   }
 
   private parseJsonArray(value: string | string[] | null | undefined): string[] {
