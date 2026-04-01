@@ -114,4 +114,36 @@ describe('AbacGuard', () => {
     });
     expect(await guard.canActivate(ctx)).toBe(true);
   });
+
+  it('should allow enterprise when policy lists only free tier', async () => {
+    mockReflector.getAllAndOverride.mockReturnValue('orders:read');
+    mockPrisma.policy.findFirst.mockResolvedValue({
+      effect: 'ALLOW',
+      allowedPlans: '["free"]',
+      allowedRegions: '[]',
+      enabled: true,
+    });
+    const ctx = createMockContext({
+      tid: 't1',
+      plan: 'enterprise',
+      region: 'region-a',
+    });
+    expect(await guard.canActivate(ctx)).toBe(true);
+  });
+
+  it('should deny free tenant when policy requires pro or above', async () => {
+    mockReflector.getAllAndOverride.mockReturnValue('orders:write');
+    mockPrisma.policy.findFirst.mockResolvedValue({
+      effect: 'ALLOW',
+      allowedPlans: '["pro","enterprise"]',
+      allowedRegions: '[]',
+      enabled: true,
+    });
+    const ctx = createMockContext({
+      tid: 't1',
+      plan: 'free',
+      region: 'region-a',
+    });
+    await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
+  });
 });
