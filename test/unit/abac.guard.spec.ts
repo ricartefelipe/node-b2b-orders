@@ -98,4 +98,20 @@ describe('AbacGuard', () => {
     });
     expect(await guard.canActivate(ctx)).toBe(true);
   });
+
+  it('should allow enterprise tenant when policy allowedPlans lists only pro', async () => {
+    mockReflector.getAllAndOverride.mockReturnValue('orders:write');
+    mockPrisma.policy.findFirst.mockResolvedValue({
+      effect: 'ALLOW',
+      allowedPlans: '["pro"]',
+      allowedRegions: '[]',
+      enabled: true,
+    });
+    const ctx = createMockContext({
+      tid: 't1',
+      plan: 'enterprise',
+      region: 'region-a',
+    });
+    expect(await guard.canActivate(ctx)).toBe(true);
+  });
 });
