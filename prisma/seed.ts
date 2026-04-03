@@ -28,6 +28,9 @@ async function main() {
     'billing:write',
     'profile:read',
     'analytics:read',
+    'audit:read',
+    'webhooks:read',
+    'webhooks:write',
   ];
   for (const code of perms) {
     await prisma.permission.upsert({ where: { code }, update: {}, create: { code } });
@@ -35,7 +38,19 @@ async function main() {
 
   const roleMap: Record<string, string[]> = {
     admin: perms,
-    ops: ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'products:read', 'products:write', 'profile:read', 'analytics:read'],
+    ops: [
+      'orders:write',
+      'orders:read',
+      'inventory:read',
+      'inventory:write',
+      'products:read',
+      'products:write',
+      'profile:read',
+      'analytics:read',
+      'audit:read',
+      'webhooks:read',
+      'webhooks:write',
+    ],
     sales: ['orders:read', 'inventory:read', 'products:read', 'profile:read', 'analytics:read'],
   };
 
@@ -60,6 +75,9 @@ async function main() {
     { permissionCode: 'profile:read', allowedPlans: '[]', allowedRegions: '[]' },
     { permissionCode: 'billing:write', allowedPlans: '[]', allowedRegions: '[]' },
     { permissionCode: 'analytics:read', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'audit:read', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'webhooks:read', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'webhooks:write', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
   ];
 
   for (const p of policies) {
