@@ -16,6 +16,7 @@ API B2B de **Pedidos** e **Inventário** com NestJS, Fastify, Prisma, PostgreSQL
 
 ## Índice
 
+- [Branches e ambientes na nuvem](#branches-e-ambientes-na-nuvem)
 - [Visão geral](#visão-geral)
 - [Quando usar](#quando-usar)
 - [Arquitetura](#arquitetura)
@@ -34,6 +35,17 @@ API B2B de **Pedidos** e **Inventário** com NestJS, Fastify, Prisma, PostgreSQL
 - [Troubleshooting](#troubleshooting)
 - [E2E com Fluxe B2B Suite](#e2e-com-fluxe-b2b-suite)
 - [Licença](#licença)
+
+---
+
+## Branches e ambientes na nuvem
+
+| Branch Git | Deploy Railway | Função |
+|------------|----------------|--------|
+| **`develop`** | **Staging** | **Teste** — integração, QA, demos; **não** é produção com clientes reais. |
+| **`master`** | **Produção** | **Para valer** — dados e operações reais. |
+
+Referência completa: [AMBIENTES-CONFIGURACAO.md](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/AMBIENTES-CONFIGURACAO.md) no repositório **fluxe-b2b-suite**.
 
 ---
 
