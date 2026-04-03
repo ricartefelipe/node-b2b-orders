@@ -26,9 +26,10 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./
 COPY docker/entrypoint.sh /app/entrypoint.sh
+COPY scripts/prisma-baseline-resolve.sh /app/scripts/prisma-baseline-resolve.sh
 
-RUN chown -R app:app /app/node_modules /app/prisma
-RUN chmod +x /app/entrypoint.sh
+RUN chown -R app:app /app/node_modules /app/prisma /app/scripts
+RUN chmod +x /app/entrypoint.sh /app/scripts/prisma-baseline-resolve.sh
 
 USER app
 

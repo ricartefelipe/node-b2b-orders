@@ -383,6 +383,7 @@ O serviço usa **Fastify 5.8.4** na dependência direta (`package.json`). O paco
 
 | Problema | Solução |
 |----------|---------|
+| **P3005** / schema não vazio + migrações “não aplicadas” (Railway staging) | Baseline: [docs/RUNBOOK-PRISMA-BASELINE-STAGING.md](docs/RUNBOOK-PRISMA-BASELINE-STAGING.md) e `scripts/prisma-baseline-resolve.sh` (após deploy da imagem que inclui o script: `railway ssh -s node-b2b-orders -- /app/scripts/prisma-baseline-resolve.sh`). |
 | Railway/PostgreSQL partilhado: erro `OutboxEvent` / tabela em falta | Aplicar DDL com **um statement por vez** (limitação Prisma prepared statement); ver `scripts/railway-create-outbox-event-table.cjs` e `railway ssh` + `base64` como no comentário do script. |
 | RabbitMQ "Connection refused" | `docker compose ps`; `./scripts/down.sh && ./scripts/up.sh` |
 | Banco fora de sync | `npx prisma generate`, `./scripts/migrate.sh`, `./scripts/seed.sh` |
