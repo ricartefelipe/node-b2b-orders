@@ -1,4 +1,12 @@
 openapi: 3.0.0
+info:
+  title: node-b2b-orders
+  description: ''
+  version: 1.0.0
+  contact: {}
+servers:
+  - url: http://localhost:3000
+    description: Local
 paths:
   /v1/audit:
     get:
@@ -45,10 +53,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - audit
       security:
         - bearer: []
+      tags:
+        - audit
   /v1/audit/export:
     get:
       operationId: AuditController_export
@@ -84,10 +92,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - audit
       security:
         - bearer: []
+      tags:
+        - audit
   /v1/auth/token:
     post:
       operationId: AuthController_token
@@ -110,10 +118,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - auth
       security:
         - bearer: []
+      tags:
+        - auth
   /v1/orders:
     post:
       operationId: OrdersController_create
@@ -149,10 +157,10 @@ paths:
       responses:
         '201':
           description: ''
-      tags:
-        - orders
       security:
         - bearer: []
+      tags:
+        - orders
     get:
       operationId: OrdersController_list
       parameters:
@@ -181,6 +189,51 @@ paths:
             maximum: 100
             default: 20
             type: number
+        - name: sortBy
+          required: false
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+        - name: sortOrder
+          required: false
+          in: query
+          schema:
+            default: desc
+            type: string
+            enum:
+              - asc
+              - desc
+        - name: q
+          required: false
+          in: query
+          description: Full-text search across customerId, status, item SKUs, item names
+          schema:
+            type: string
+        - name: minAmount
+          required: false
+          in: query
+          description: Minimum order total amount
+          schema:
+            type: number
+        - name: maxAmount
+          required: false
+          in: query
+          description: Maximum order total amount
+          schema:
+            type: number
+        - name: dateFrom
+          required: false
+          in: query
+          description: Filter orders from this date (ISO 8601)
+          schema:
+            type: string
+        - name: dateTo
+          required: false
+          in: query
+          description: Filter orders until this date (ISO 8601)
+          schema:
+            type: string
         - name: status
           required: true
           in: query
@@ -189,10 +242,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - orders
       security:
         - bearer: []
+      tags:
+        - orders
   /v1/orders/{id}/confirm:
     post:
       operationId: OrdersController_confirm
@@ -225,12 +278,94 @@ paths:
           schema:
             type: string
       responses:
-        '201':
+        '200':
           description: ''
-      tags:
-        - orders
       security:
         - bearer: []
+      tags:
+        - orders
+  /v1/orders/{id}/ship:
+    post:
+      operationId: OrdersController_ship
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: idempotency-key
+          required: true
+          in: header
+          schema:
+            type: string
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          description: Chave de idempotência
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipOrderDto'
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - orders
+  /v1/orders/{id}/deliver:
+    post:
+      operationId: OrdersController_deliver
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: idempotency-key
+          required: true
+          in: header
+          schema:
+            type: string
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          description: Chave de idempotência
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - orders
   /v1/orders/{id}/cancel:
     post:
       operationId: OrdersController_cancel
@@ -246,18 +381,29 @@ paths:
           required: true
           schema:
             type: string
+        - name: idempotency-key
+          required: true
+          in: header
+          schema:
+            type: string
         - name: id
           required: true
           in: path
           schema:
             type: string
+        - name: Idempotency-Key
+          in: header
+          description: Chave de idempotência
+          required: false
+          schema:
+            type: string
       responses:
-        '201':
+        '200':
           description: ''
-      tags:
-        - orders
       security:
         - bearer: []
+      tags:
+        - orders
   /v1/orders/{id}:
     get:
       operationId: OrdersController_getOne
@@ -281,10 +427,42 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - orders
       security:
         - bearer: []
+      tags:
+        - orders
+  /v1/events/stream:
+    get:
+      operationId: EventsController_stream
+      parameters:
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - events
+  /v1/events/clients:
+    get:
+      operationId: EventsController_getClientCount
+      parameters:
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - events
   /v1/products/metadata/categories:
     get:
       operationId: ProductsController_getCategories
@@ -303,10 +481,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - products
       security:
         - bearer: []
+      tags:
+        - products
   /v1/products/metadata/price-range:
     get:
       operationId: ProductsController_getPriceRange
@@ -325,10 +503,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - products
       security:
         - bearer: []
+      tags:
+        - products
   /v1/products:
     get:
       operationId: ProductsController_list
@@ -397,13 +575,28 @@ paths:
             maximum: 100
             default: 20
             type: number
+        - name: sortBy
+          required: false
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+        - name: sortOrder
+          required: false
+          in: query
+          schema:
+            default: desc
+            type: string
+            enum:
+              - asc
+              - desc
       responses:
         '200':
           description: ''
-      tags:
-        - products
       security:
         - bearer: []
+      tags:
+        - products
     post:
       operationId: ProductsController_create
       parameters:
@@ -427,10 +620,10 @@ paths:
       responses:
         '201':
           description: ''
-      tags:
-        - products
       security:
         - bearer: []
+      tags:
+        - products
   /v1/products/{id}:
     get:
       operationId: ProductsController_getOne
@@ -454,10 +647,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - products
       security:
         - bearer: []
+      tags:
+        - products
     patch:
       operationId: ProductsController_update
       parameters:
@@ -486,10 +679,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - products
       security:
         - bearer: []
+      tags:
+        - products
     delete:
       operationId: ProductsController_remove
       parameters:
@@ -512,10 +705,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - products
       security:
         - bearer: []
+      tags:
+        - products
   /v1/inventory:
     get:
       operationId: InventoryController_list
@@ -545,6 +738,21 @@ paths:
             maximum: 100
             default: 20
             type: number
+        - name: sortBy
+          required: false
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+        - name: sortOrder
+          required: false
+          in: query
+          schema:
+            default: desc
+            type: string
+            enum:
+              - asc
+              - desc
         - name: sku
           required: true
           in: query
@@ -553,10 +761,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - inventory
       security:
         - bearer: []
+      tags:
+        - inventory
   /v1/inventory/adjustments:
     post:
       operationId: InventoryController_createAdjustment
@@ -591,10 +799,10 @@ paths:
       responses:
         '201':
           description: ''
-      tags:
-        - inventory
       security:
         - bearer: []
+      tags:
+        - inventory
     get:
       operationId: InventoryController_listAdjustments
       parameters:
@@ -626,10 +834,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - inventory
       security:
         - bearer: []
+      tags:
+        - inventory
   /v1/admin/chaos:
     get:
       operationId: AdminController_getChaos
@@ -648,10 +856,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - admin
       security:
         - bearer: []
+      tags:
+        - admin
     put:
       operationId: AdminController_setChaos
       parameters:
@@ -675,10 +883,10 @@ paths:
       responses:
         '200':
           description: ''
-      tags:
-        - admin
       security:
         - bearer: []
+      tags:
+        - admin
   /v1/metrics:
     get:
       operationId: MetricsController_metrics
@@ -706,13 +914,548 @@ paths:
           description: ''
       tags:
         - metrics
-info:
-  title: node-b2b-orders
-  description: ''
-  version: 1.0.0
-  contact: {}
-tags: []
-servers: []
+  /v1/analytics/demand:
+    get:
+      operationId: AnalyticsController_getDemand
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - analytics
+  /v1/analytics/anomalies:
+    get:
+      operationId: AnalyticsController_getAnomalies
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - analytics
+  /v1/analytics/inventory-forecast:
+    get:
+      operationId: AnalyticsController_getInventoryForecast
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: lowStockThreshold
+          required: false
+          in: query
+          description: 'Threshold for low stock (default: 10)'
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - analytics
+  /v1/ai/docs:
+    get:
+      operationId: AiController_getDocs
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - ai
+  /v1/ai/recommendations/customer/{customerId}:
+    get:
+      operationId: RecommendationController_getForCustomer
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: customerId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - ai
+  /v1/ai/recommendations/trending:
+    get:
+      operationId: RecommendationController_getTrending
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: days
+          required: false
+          in: query
+          schema:
+            type: number
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - ai
+  /v1/ai/recommendations/together/{sku}:
+    get:
+      operationId: RecommendationController_getFrequentlyBoughtTogether
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: sku
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - ai
+  /v1/ai/recommendations/feed/{customerId}:
+    get:
+      operationId: RecommendationController_getPersonalizedFeed
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: customerId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - ai
+  /v1/ai/search/orders:
+    get:
+      operationId: NlpSearchController_searchOrders
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: q
+          required: true
+          in: query
+          description: Natural language query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - ai
+  /v1/ai/search/products:
+    get:
+      operationId: NlpSearchController_searchProducts
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: q
+          required: true
+          in: query
+          description: Natural language query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - ai
+  /v1/export/orders:
+    get:
+      operationId: ExportController_exportOrders
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: format
+          required: false
+          in: query
+          schema:
+            default: csv
+            type: string
+            enum:
+              - csv
+              - json
+        - name: dateFrom
+          required: false
+          in: query
+          description: ISO 8601 date string (inclusive)
+          schema:
+            type: string
+        - name: dateTo
+          required: false
+          in: query
+          description: ISO 8601 date string (inclusive)
+          schema:
+            type: string
+        - name: status
+          required: false
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - export
+  /v1/export/products:
+    get:
+      operationId: ExportController_exportProducts
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: format
+          required: false
+          in: query
+          schema:
+            default: csv
+            type: string
+            enum:
+              - csv
+              - json
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - export
+  /v1/export/inventory:
+    get:
+      operationId: ExportController_exportInventory
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - export
+  /v1/import/products:
+    post:
+      operationId: ImportController_importProducts
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportBodyDto'
+      responses:
+        '201':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - import
+  /v1/import/inventory:
+    post:
+      operationId: ImportController_importInventory
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportBodyDto'
+      responses:
+        '201':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - import
+  /v1/import/orders:
+    post:
+      operationId: ImportController_importOrders
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          description: ID para distributed tracing
+          required: false
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportBodyDto'
+      responses:
+        '201':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - import
+  /v1/v1/webhooks:
+    post:
+      operationId: WebhooksController_register
+      parameters:
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookDto'
+      responses:
+        '201':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - webhooks
+    get:
+      operationId: WebhooksController_list
+      parameters:
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - webhooks
+  /v1/v1/webhooks/{id}:
+    delete:
+      operationId: WebhooksController_remove
+      parameters:
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - webhooks
+  /v1/v1/webhooks/{id}/deliveries:
+    get:
+      operationId: WebhooksController_deliveries
+      parameters:
+        - name: X-Tenant-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      tags:
+        - webhooks
 components:
   securitySchemes:
     bearer:
@@ -722,10 +1465,55 @@ components:
   schemas:
     TokenRequestDto:
       type: object
-      properties: {}
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 3
+        tenantId:
+          type: string
+          description: Tenant UUID when o utilizador pertence a vários
+      required:
+        - email
+        - password
+    OrderItemDto:
+      type: object
+      properties:
+        sku:
+          type: string
+        qty:
+          type: number
+          minimum: 1
+        price:
+          type: number
+          minimum: 0
+      required:
+        - sku
+        - qty
+        - price
     CreateOrderRequestDto:
       type: object
-      properties: {}
+      properties:
+        customerId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemDto'
+      required:
+        - customerId
+        - items
+    ShipOrderDto:
+      type: object
+      properties:
+        trackingCode:
+          type: string
+        trackingUrl:
+          type: string
+      required:
+        - trackingCode
     CreateProductDto:
       type: object
       properties:
@@ -770,7 +1558,56 @@ components:
           type: boolean
     CreateAdjustmentDto:
       type: object
-      properties: {}
+      properties:
+        sku:
+          type: string
+        type:
+          type: string
+          enum:
+            - IN
+            - OUT
+            - ADJUSTMENT
+        qty:
+          type: number
+          minimum: 1
+        reason:
+          type: string
+      required:
+        - sku
+        - type
+        - qty
+        - reason
     ChaosConfigDto:
       type: object
+      properties:
+        enabled:
+          type: boolean
+        failPercent:
+          type: number
+          minimum: 0
+          maximum: 100
+        latencyMs:
+          type: number
+          minimum: 0
+      required:
+        - enabled
+        - failPercent
+        - latencyMs
+    ImportBodyDto:
+      type: object
+      properties:
+        format:
+          type: string
+          enum:
+            - csv
+            - json
+        data:
+          type: object
+          description: CSV string when format=csv, JSON array when format=json
+      required:
+        - format
+        - data
+    CreateWebhookDto:
+      type: object
       properties: {}
+tags: []

@@ -25,6 +25,7 @@ async function main() {
     'products:read',
     'products:write',
     'admin:write',
+    'billing:write',
     'profile:read',
     'analytics:read',
   ];
@@ -57,6 +58,7 @@ async function main() {
     { permissionCode: 'products:write', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
     { permissionCode: 'admin:write', allowedPlans: '["enterprise"]', allowedRegions: '[]' },
     { permissionCode: 'profile:read', allowedPlans: '[]', allowedRegions: '[]' },
+    { permissionCode: 'billing:write', allowedPlans: '[]', allowedRegions: '[]' },
     { permissionCode: 'analytics:read', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
   ];
 
