@@ -19,6 +19,7 @@ O PostgreSQL tem objetos no `public`, mas o Prisma não tem registo coerente em 
 
 - Railway CLI logado; repo `node-b2b-orders` ligado ao projecto e ambiente **staging** (`railway status`).
 - Confiança de que o **schema actual** corresponde ao que estas migrações criariam. Se duvidar, inspecione tabelas/colunas antes ou use BD de staging descartável e `migrate deploy` em BD vazio.
+- A imagem API (`docker/api.Dockerfile`) precisa de incluir `scripts/prisma-baseline-resolve.sh`: o `.dockerignore` **não** deve ignorar a pasta `scripts/` (caso contrário o `COPY` falha ou o build fica inconsistente).
 
 ---
 
