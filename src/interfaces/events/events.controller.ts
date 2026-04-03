@@ -5,19 +5,23 @@ import { randomUUID } from 'crypto';
 
 import { JwtAuthGuard } from '../../shared/auth/jwt.guard';
 import { TenantGuard } from '../../shared/auth/tenant.guard';
+import { Permission } from '../../shared/auth/permissions.decorator';
+import { PermissionsGuard } from '../../shared/auth/permissions.guard';
+import { AbacGuard } from '../../shared/auth/abac.guard';
 import { EventsService, MessageEvent } from './events.service';
 
 @ApiTags('events')
 @ApiBearerAuth()
 @ApiHeader({ name: 'X-Tenant-Id', required: true })
 @Controller('events')
-@UseGuards(JwtAuthGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard, AbacGuard)
 export class EventsController {
   private readonly logger = new Logger(EventsController.name);
 
   constructor(private readonly eventsService: EventsService) {}
 
   @Sse('stream')
+  @Permission('orders:read')
   stream(@Req() req: any): Observable<MessageEvent> {
     const tenantId: string = req.headers['x-tenant-id'];
     const clientId = randomUUID();
@@ -34,6 +38,7 @@ export class EventsController {
   }
 
   @Get('clients')
+  @Permission('orders:read')
   getClientCount(@Req() req: any) {
     const tenantId: string = req.headers['x-tenant-id'];
     return { tenantId, activeClients: this.eventsService.getActiveClients(tenantId) };
