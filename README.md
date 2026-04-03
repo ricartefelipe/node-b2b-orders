@@ -3,7 +3,7 @@
 [![CI](https://github.com/ricartefelipe/node-b2b-orders/actions/workflows/ci.yml/badge.svg)](https://github.com/ricartefelipe/node-b2b-orders/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io/)
@@ -30,6 +30,7 @@ API B2B de **Pedidos** e **Inventário** com NestJS, Fastify, Prisma, PostgreSQL
 - [Rodar sem Docker (API + Worker)](#rodar-localmente-sem-docker-para-apiworker)
 - [Scripts e verificação](#scripts-e-comandos-de-verificação)
 - [Stack](#stack)
+- [Fastify, npm audit e overrides](#fastify-npm-audit-e-overrides)
 - [Troubleshooting](#troubleshooting)
 - [E2E com Fluxe B2B Suite](#e2e-com-fluxe-b2b-suite)
 - [Licença](#licença)
@@ -345,7 +346,7 @@ Validação completa: `./scripts/smoke.sh`
 | Componente | Tecnologia |
 |------------|------------|
 | Runtime | Node.js 20+ |
-| Framework | NestJS 10 + Fastify |
+| Framework | NestJS 11 + Fastify |
 | ORM | Prisma 5 |
 | Banco | PostgreSQL 16 |
 | Cache | Redis 7 |
@@ -353,6 +354,16 @@ Validação completa: `./scripts/smoke.sh`
 | Auth | JWT HS256 + Passport |
 | Métricas | prom-client + Prometheus |
 | Dashboards | Grafana |
+
+---
+
+## Fastify, npm audit e overrides
+
+O serviço usa **Fastify 5.8.4** na dependência direta (`package.json`). O pacote **`@nestjs/platform-fastify` (Nest 11)** ainda declara internamente Fastify **5.8.2**, que tinha o aviso [GHSA-444r-cwp2-x5xf](https://github.com/fastify/fastify/security/advisories/GHSA-444r-cwp2-x5xf) (headers `X-Forwarded-*`). Por isso existe um **`overrides.fastify`** fixo em **5.8.4**: o npm passa a resolver uma única versão para toda a árvore e o `npm audit` fica limpo.
+
+**O que fazer no dia a dia:** `npm ci` ou `npm install` como habitualmente; não remover o override até o Nest estável passar a depender de Fastify ≥ 5.8.3. Para validar: `npm audit` (e no CI, `npm audit --audit-level=high`).
+
+**Staging / Railway:** com o serviço apontando à branch `develop`, cada merge em `develop` dispara novo build e deploy no Railway (ver [DEPLOY-RAILWAY](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/DEPLOY-RAILWAY.md) no repositório fluxe-b2b-suite).
 
 ---
 
