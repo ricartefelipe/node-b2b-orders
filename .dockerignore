@@ -14,5 +14,5 @@ test
 __tests__
 *.md
 docker-compose*.yml
-scripts
+# Não ignorar `scripts/`: a imagem API copia `scripts/prisma-baseline-resolve.sh` (baseline Railway).
 .github
