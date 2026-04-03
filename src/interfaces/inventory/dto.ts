@@ -1,6 +1,6 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum AdjustmentType {
   IN = 'IN',
@@ -9,16 +9,20 @@ export enum AdjustmentType {
 }
 
 export class CreateAdjustmentDto {
+  @ApiProperty()
   @IsString()
   sku!: string;
 
+  @ApiProperty({ enum: AdjustmentType })
   @IsEnum(AdjustmentType)
   type!: AdjustmentType;
 
+  @ApiProperty({ minimum: 1 })
   @IsInt()
   @Min(1)
   qty!: number;
 
+  @ApiProperty()
   @IsString()
   reason!: string;
 }
