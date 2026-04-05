@@ -47,8 +47,8 @@ export class AbacGuard implements CanActivate {
       throw new ForbiddenException('Policy denies');
     }
 
-    const plan = (user.plan || 'free').trim().toLowerCase();
-    const region = (user.region || 'region-a').trim().toLowerCase();
+    const plan = this.normalizeJwtPlan((user as { plan?: unknown }).plan);
+    const region = this.normalizeJwtRegion((user as { region?: unknown }).region);
 
     const plans: string[] = this.parseJsonArray(policy.allowedPlans).map(p =>
       String(p).trim().toLowerCase(),
@@ -71,6 +71,25 @@ export class AbacGuard implements CanActivate {
    * allowedPlans define o conjunto de tiers permitidos; interpretamos o mínimo exigido como
    * min(tier) e permitimos qualquer tenant com tier >= esse mínimo (ex.: enterprise com política só ["pro"]).
    */
+  /** Alinha claims do Core (signup/UI) com tiers ABAC (ex. professional → pro, us-east-1 → region-a). */
+  private normalizeJwtPlan(raw: unknown): string {
+    const p = String(raw ?? '')
+      .trim()
+      .toLowerCase();
+    if (!p) return 'free';
+    if (p === 'professional') return 'pro';
+    return p;
+  }
+
+  private normalizeJwtRegion(raw: unknown): string {
+    const r = String(raw ?? '')
+      .trim()
+      .toLowerCase();
+    if (!r) return 'region-a';
+    if (r === 'us-east-1') return 'region-a';
+    return r;
+  }
+
   private planAllowed(plan: string, allowed: string[]): boolean {
     if (allowed.includes(plan)) return true;
     const userTier = PLAN_TIER[plan];
