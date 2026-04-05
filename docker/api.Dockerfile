@@ -26,7 +26,8 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./
 COPY docker/entrypoint.sh /app/entrypoint.sh
-COPY scripts/prisma-baseline-resolve.sh /app/scripts/prisma-baseline-resolve.sh
+# Copiar do stage build (já inclui `COPY . .`) — evita falha quando o contexto do runtime não expõe `scripts/`.
+COPY --from=build /app/scripts/prisma-baseline-resolve.sh /app/scripts/prisma-baseline-resolve.sh
 
 RUN chown -R app:app /app/node_modules /app/prisma /app/scripts
 RUN chmod +x /app/entrypoint.sh /app/scripts/prisma-baseline-resolve.sh
