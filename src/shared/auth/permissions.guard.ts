@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core';
 import { PERMISSION_KEY } from './permissions.decorator';
 import { AuditService } from '../audit/audit.service';
+import { AuthRequest } from './auth-request.interface';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -17,7 +18,7 @@ export class PermissionsGuard implements CanActivate {
     ]);
     if (!required) return true;
 
-    const req: any = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<AuthRequest>();
     const user = req.user;
     if (!user) {
       await this.logDenied(req, required, 'missing_user', 'Missing user');
@@ -33,9 +34,9 @@ export class PermissionsGuard implements CanActivate {
     return true;
   }
 
-  private async logDenied(req: any, permission: string, reason: string, message: string): Promise<void> {
+  private async logDenied(req: AuthRequest, permission: string, reason: string, message: string): Promise<void> {
     await this.audit.log({
-      tenantId: req.headers?.['x-tenant-id'] || undefined,
+      tenantId: req.tenantId || undefined,
       actorSub: req.user?.sub || 'unknown',
       action: 'access_denied',
       target: `${req.method} ${req.url}`,
