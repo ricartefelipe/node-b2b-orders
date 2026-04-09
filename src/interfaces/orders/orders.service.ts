@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../../shared/audit/audit.service';
@@ -381,33 +382,35 @@ export class OrdersService {
       dateFrom?: string;
       dateTo?: string;
     },
-  ): Promise<PaginatedResponse<any>> {
+  ) {
+    type OrderWithItems = Prisma.OrderGetPayload<{ include: { items: true } }>;
+
     const limit = resolveLimit(rawLimit);
     const querySig = [cursor, limit, sortBy, sortOrder, status, filters ? JSON.stringify(filters) : ''].join('|');
     const queryHash = createHash('sha256').update(querySig).digest('hex').slice(0, 16);
     const cacheKey = `front:cache:orders:v1/orders:${tenantId}:${queryHash}`;
 
     const cached = await this.redis.idemGet(cacheKey);
-    if (cached != null) return cached as PaginatedResponse<any>;
+    if (cached != null) return cached as PaginatedResponse<OrderWithItems>;
 
     const where = await this.buildListOrdersWhere(tenantId, status, filters);
 
-    const findArgs: Record<string, unknown> = {
+    const baseArgs = {
       where,
       orderBy: resolveOrderSort(sortBy, sortOrder),
       take: limit + 1,
-      include: { items: true },
+      include: { items: true } as const,
     };
 
+    let cursorArgs: { cursor: { id: string }; skip: number } | object = {};
     if (cursor) {
       const decoded = decodeCursor(cursor);
       if (decoded) {
-        findArgs.cursor = { id: decoded.id };
-        findArgs.skip = 1;
+        cursorArgs = { cursor: { id: decoded.id }, skip: 1 };
       }
     }
 
-    const rows = await this.prisma.order.findMany(findArgs as any);
+    const rows = await this.prisma.order.findMany({ ...baseArgs, ...cursorArgs });
     const hasMore = rows.length > limit;
     const data = hasMore ? rows.slice(0, limit) : rows;
     const last = data[data.length - 1];

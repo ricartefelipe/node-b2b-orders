@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { createHmac } from 'crypto';
 
 const MAX_ATTEMPTS = 5;
@@ -26,7 +26,7 @@ export async function enqueueWebhookDelivery(
     data: endpoints.map((ep) => ({
       endpointId: ep.id,
       eventType,
-      payload: payload as any,
+      payload: payload as Prisma.InputJsonValue,
     })),
   });
 
