@@ -1,5 +1,6 @@
 import { Controller, Get, Res, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { FastifyReply } from 'fastify';
 import * as promClient from 'prom-client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
@@ -13,7 +14,7 @@ export class MetricsController {
   ) {}
 
   @Get('metrics')
-  async metrics(@Res() res: any) {
+  async metrics(@Res() res: FastifyReply) {
     res.header('Content-Type', promClient.register.contentType);
     res.send(await promClient.register.metrics());
   }
@@ -27,13 +28,15 @@ export class MetricsController {
   async readyz() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-    } catch (e: any) {
-      throw new ServiceUnavailableException({ status: 'fail', component: 'db', error: String(e?.message || e) });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new ServiceUnavailableException({ status: 'fail', component: 'db', error: msg });
     }
     try {
       await this.redis.raw.ping();
-    } catch (e: any) {
-      throw new ServiceUnavailableException({ status: 'fail', component: 'redis', error: String(e?.message || e) });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new ServiceUnavailableException({ status: 'fail', component: 'redis', error: msg });
     }
     return { status: 'ok' };
   }

@@ -1,7 +1,8 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyReply } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
 import { DomainException } from '../exceptions/domain.exception';
+import { DecoratedFastifyRequest } from '../auth/auth-request.interface';
 
 @Catch()
 export class ProblemDetailsFilter implements ExceptionFilter {
@@ -10,7 +11,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const reply = ctx.getResponse<FastifyReply>();
-    const request = ctx.getRequest<FastifyRequest>();
+    const request = ctx.getRequest<DecoratedFastifyRequest>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let title = 'Internal Server Error';
@@ -38,7 +39,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       this.logger.error(`Unhandled exception: ${exception.message}`, exception.stack);
     }
 
-    const correlationId = (request as any).correlationId || uuidv4().replace(/-/g, '');
+    const correlationId = request.correlationId || uuidv4().replace(/-/g, '');
 
     const problem = {
       type: `https://httpstatuses.com/${status}`,

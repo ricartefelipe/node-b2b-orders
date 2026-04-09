@@ -9,8 +9,11 @@ export interface JwtPayload {
   perms?: string[];
 }
 
-export interface AuthRequest extends FastifyRequest {
-  user: JwtPayload;
+export interface DecoratedFastifyRequest extends FastifyRequest {
   correlationId?: string;
   tenantId?: string;
+}
+
+export interface AuthRequest extends DecoratedFastifyRequest {
+  user: JwtPayload;
 }
