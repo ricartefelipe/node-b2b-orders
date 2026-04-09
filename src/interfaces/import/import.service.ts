@@ -24,7 +24,7 @@ export class ImportService {
     actorSub: string,
     correlationId: string,
     format: ImportFormat,
-    rawData: any,
+    rawData: unknown,
   ): Promise<ImportResult> {
     const rows = this.parseRows<ProductImportRow>(format, rawData, ['sku', 'name', 'price']);
     if (rows.length > MAX_IMPORT_ROWS) {
@@ -84,8 +84,9 @@ export class ImportService {
           }
         });
         imported = validRows.length;
-      } catch (err: any) {
-        errors.push({ row: 0, message: `Transaction failed: ${err.message}` });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push({ row: 0, message: `Transaction failed: ${msg}` });
       }
     }
 
@@ -106,7 +107,7 @@ export class ImportService {
     actorSub: string,
     correlationId: string,
     format: ImportFormat,
-    rawData: any,
+    rawData: unknown,
   ): Promise<ImportResult> {
     const rows = this.parseRows<InventoryImportRow>(format, rawData, ['sku', 'qty', 'type']);
     if (rows.length > MAX_IMPORT_ROWS) {
@@ -199,8 +200,9 @@ export class ImportService {
           }
         });
         imported = validRows.length;
-      } catch (err: any) {
-        errors.push({ row: 0, message: `Transaction failed: ${err.message}` });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push({ row: 0, message: `Transaction failed: ${msg}` });
       }
     }
 
@@ -221,7 +223,7 @@ export class ImportService {
     actorSub: string,
     correlationId: string,
     format: ImportFormat,
-    rawData: any,
+    rawData: unknown,
   ): Promise<ImportResult> {
     let orderRows: OrderImportRow[];
 
@@ -298,8 +300,9 @@ export class ImportService {
           }
         });
         imported = validRows.length;
-      } catch (err: any) {
-        errors.push({ row: 0, message: `Transaction failed: ${err.message}` });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push({ row: 0, message: `Transaction failed: ${msg}` });
       }
     }
 
@@ -315,9 +318,9 @@ export class ImportService {
     return { total: orderRows.length, imported, errors };
   }
 
-  private parseRows<T extends Record<string, any>>(
+  private parseRows<T>(
     format: ImportFormat,
-    rawData: any,
+    rawData: unknown,
     requiredHeaders: string[],
   ): T[] {
     if (format === ImportFormat.JSON) {
@@ -347,8 +350,8 @@ export class ImportService {
       .slice(1)
       .filter((row) => row.some((cell) => cell.trim() !== ''))
       .map((row) => {
-        const obj: Record<string, any> = {};
-        headers.forEach((header, idx) => {
+        const obj: Record<string, unknown> = {};
+          headers.forEach((header, idx) => {
           const val = row[idx]?.trim() ?? '';
           if (val !== '') {
             if (header === 'instock') {
@@ -367,7 +370,7 @@ export class ImportService {
    *   customerId,sku,qty,price
    * Rows with the same customerId are grouped into a single order.
    */
-  private parseOrdersCsv(rawData: any): OrderImportRow[] {
+  private parseOrdersCsv(rawData: unknown): OrderImportRow[] {
     if (typeof rawData !== 'string') {
       throw new BadRequestException('data must be a string for CSV format');
     }

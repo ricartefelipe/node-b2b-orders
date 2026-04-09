@@ -8,6 +8,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 import { EventsService, MessageEvent } from './events.service';
 
 @ApiTags('events')
@@ -22,8 +23,8 @@ export class EventsController {
 
   @Sse('stream')
   @Permission('orders:read')
-  stream(@Req() req: any): Observable<MessageEvent> {
-    const tenantId: string = req.headers['x-tenant-id'];
+  stream(@Req() req: AuthRequest): Observable<MessageEvent> {
+    const tenantId = req.headers['x-tenant-id'] as string;
     const clientId = randomUUID();
 
     this.logger.log(`SSE stream requested by tenant=${tenantId}, clientId=${clientId}`);
@@ -39,8 +40,8 @@ export class EventsController {
 
   @Get('clients')
   @Permission('orders:read')
-  getClientCount(@Req() req: any) {
-    const tenantId: string = req.headers['x-tenant-id'];
+  getClientCount(@Req() req: AuthRequest) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return { tenantId, activeClients: this.eventsService.getActiveClients(tenantId) };
   }
 }

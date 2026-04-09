@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 
 import { AnalyticsService } from './analytics.service';
 
@@ -20,15 +21,15 @@ export class AnalyticsController {
 
   @Get('demand')
   @Permission('analytics:read')
-  async getDemand(@Req() req: any) {
-    const tenantId = req.headers['x-tenant-id'];
+  async getDemand(@Req() req: AuthRequest) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.analytics.getDemandAnalytics(tenantId);
   }
 
   @Get('anomalies')
   @Permission('analytics:read')
-  async getAnomalies(@Req() req: any) {
-    const tenantId = req.headers['x-tenant-id'];
+  async getAnomalies(@Req() req: AuthRequest) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.analytics.getAnomalies(tenantId);
   }
 
@@ -36,10 +37,10 @@ export class AnalyticsController {
   @Permission('analytics:read')
   @ApiQuery({ name: 'lowStockThreshold', required: false, type: Number, description: 'Threshold for low stock (default: 10)' })
   async getInventoryForecast(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Query('lowStockThreshold') lowStockThreshold?: string,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     const threshold = lowStockThreshold ? parseInt(lowStockThreshold, 10) : 10;
     return this.analytics.getInventoryForecast(tenantId, isNaN(threshold) ? 10 : threshold);
   }

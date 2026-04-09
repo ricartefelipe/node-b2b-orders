@@ -4,6 +4,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { TokenRequestDto, TokenResponseDto } from './dto';
 import { JwtAuthGuard } from '../../shared/auth/jwt.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 
 @ApiTags('auth')
 @Controller()
@@ -20,7 +21,7 @@ export class AuthController {
   @Get('me')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  async me(@Req() req: any) {
+  async me(@Req() req: AuthRequest) {
     return req.user;
   }
 }

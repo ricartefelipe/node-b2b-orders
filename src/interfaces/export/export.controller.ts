@@ -7,6 +7,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 
 import { ExportService } from './export.service';
 import { ExportFormat, ExportOrdersQueryDto, ExportProductsQueryDto } from './dto';
@@ -23,11 +24,11 @@ export class ExportController {
   @Get('orders')
   @Permission('analytics:read')
   async exportOrders(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Res() reply: FastifyReply,
     @Query() query: ExportOrdersQueryDto,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     const filters = {
       dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
       dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
@@ -52,11 +53,11 @@ export class ExportController {
   @Get('products')
   @Permission('analytics:read')
   async exportProducts(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Res() reply: FastifyReply,
     @Query() query: ExportProductsQueryDto,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
 
     if (query.format === ExportFormat.JSON) {
       const data = await this.exportService.exportProductsJson(tenantId);
@@ -76,10 +77,10 @@ export class ExportController {
   @Get('inventory')
   @Permission('analytics:read')
   async exportInventory(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Res() reply: FastifyReply,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     const csv = await this.exportService.exportInventory(tenantId);
     return reply
       .header('Content-Type', 'text/csv')
