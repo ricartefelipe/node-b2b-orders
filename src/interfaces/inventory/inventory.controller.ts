@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 import { CursorPageQuery } from '../../shared/pagination/cursor';
 
 import { SortQueryDto } from '../../shared/sorting/sort-query.dto';
@@ -24,12 +25,12 @@ export class InventoryController {
   @Get()
   @Permission('inventory:read')
   async list(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Query() page: CursorPageQuery,
     @Query() sort: SortQueryDto,
     @Query('sku') sku?: string,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.inventory.list(tenantId, sku, page.cursor, sort.sortBy, sort.sortOrder, page.limit);
   }
 
@@ -37,14 +38,14 @@ export class InventoryController {
   @Permission('inventory:write')
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   async createAdjustment(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Headers('idempotency-key') idem: string,
     @Body() body: CreateAdjustmentDto
   ) {
     if (!idem) {
       throw new BadRequestException('Idempotency-Key header is required');
     }
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     const correlationId = req.correlationId || '';
     const actorSub = req.user?.sub || 'unknown';
     return this.inventory.createAdjustment(
@@ -61,8 +62,8 @@ export class InventoryController {
 
   @Get('adjustments')
   @Permission('inventory:read')
-  async listAdjustments(@Req() req: any, @Query() query: ListAdjustmentsQueryDto) {
-    const tenantId = req.headers['x-tenant-id'];
+  async listAdjustments(@Req() req: AuthRequest, @Query() query: ListAdjustmentsQueryDto) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.inventory.listAdjustments(tenantId, query.sku, query.cursor, query.limit);
   }
 }

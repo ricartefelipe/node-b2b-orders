@@ -93,7 +93,7 @@ export class RedisService {
 
     if (!this.tokenBucketSha)
       this.tokenBucketSha = (await this.client.script('LOAD', LUA_TOKEN_BUCKET)) as string;
-    const res: any = await this.client.evalsha(
+    const res = await this.client.evalsha(
       this.tokenBucketSha as string,
       1,
       key,
@@ -101,7 +101,7 @@ export class RedisService {
       refillRate,
       now,
       1
-    );
+    ) as [number, number, number];
     const allowed = Number(res[0]) === 1;
     const tokens = Math.floor(Number(res[1]));
     return { allowed, remaining: Math.max(0, tokens), retryAfterSeconds: allowed ? 0 : 1, limit };
@@ -131,7 +131,7 @@ export class RedisService {
     await this.client.set(`chaos:${tenantId}`, JSON.stringify(cfg));
   }
 
-  async idemGet(key: string): Promise<any | null> {
+  async idemGet(key: string): Promise<unknown> {
     const raw = await this.client.get(key);
     if (!raw) return null;
     try {
@@ -141,7 +141,7 @@ export class RedisService {
     }
   }
 
-  async idemSet(key: string, value: any, ttlSeconds: number): Promise<void> {
+  async idemSet(key: string, value: unknown, ttlSeconds: number): Promise<void> {
     await this.client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
   }
 }
