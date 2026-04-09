@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 
 import { NlpSearchService } from './nlp-search.service';
 
@@ -22,10 +23,10 @@ export class NlpSearchController {
   @Permission('analytics:read')
   @ApiQuery({ name: 'q', required: true, type: String, description: 'Natural language query' })
   async searchOrders(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Query('q') q: string,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.nlpSearch.searchOrders(tenantId, q ?? '');
   }
 
@@ -33,10 +34,10 @@ export class NlpSearchController {
   @Permission('analytics:read')
   @ApiQuery({ name: 'q', required: true, type: String, description: 'Natural language query' })
   async searchProducts(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Query('q') q: string,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.nlpSearch.searchProducts(tenantId, q ?? '');
   }
 }

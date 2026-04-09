@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InventoryAdjustment, InventoryItem, Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../../shared/audit/audit.service';
@@ -33,12 +34,12 @@ export class InventoryService {
     sortBy?: string,
     sortOrder?: 'asc' | 'desc',
     rawLimit?: number,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse<InventoryItem>> {
     const limit = resolveLimit(rawLimit);
-    const where: Record<string, unknown> = { tenantId };
+    const where: Prisma.InventoryItemWhereInput = { tenantId };
     if (sku) where.sku = sku;
 
-    const findArgs: Record<string, unknown> = {
+    const findArgs: Prisma.InventoryItemFindManyArgs = {
       where,
       orderBy: resolveInventorySort(sortBy, sortOrder),
       take: limit + 1,
@@ -52,7 +53,7 @@ export class InventoryService {
       }
     }
 
-    const rows = await this.prisma.inventoryItem.findMany(findArgs as any);
+    const rows = await this.prisma.inventoryItem.findMany(findArgs);
     const hasMore = rows.length > limit;
     const data = hasMore ? rows.slice(0, limit) : rows;
     const last = data[data.length - 1];
@@ -160,12 +161,12 @@ export class InventoryService {
     sku?: string,
     cursor?: string,
     rawLimit?: number,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse<InventoryAdjustment>> {
     const limit = resolveLimit(rawLimit);
-    const where: Record<string, unknown> = { tenantId };
+    const where: Prisma.InventoryAdjustmentWhereInput = { tenantId };
     if (sku) where.sku = sku;
 
-    const findArgs: Record<string, unknown> = {
+    const findArgs: Prisma.InventoryAdjustmentFindManyArgs = {
       where,
       orderBy: { createdAt: 'desc' as const },
       take: limit + 1,
@@ -179,7 +180,7 @@ export class InventoryService {
       }
     }
 
-    const rows = await this.prisma.inventoryAdjustment.findMany(findArgs as any);
+    const rows = await this.prisma.inventoryAdjustment.findMany(findArgs);
     const hasMore = rows.length > limit;
     const data = hasMore ? rows.slice(0, limit) : rows;
     const last = data[data.length - 1];

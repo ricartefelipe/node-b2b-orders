@@ -7,6 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { trace } from '@opentelemetry/api';
 import { collectDefaultMetrics } from 'prom-client';
 import { v4 as uuidv4 } from 'uuid';
+import { FastifyReply } from 'fastify';
 
 import helmet from '@fastify/helmet';
 
@@ -16,6 +17,7 @@ import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { RedisService } from './infrastructure/redis/redis.service';
 import { ProblemDetailsFilter } from './shared/filters/problem-details.filter';
+import { DecoratedFastifyRequest } from './shared/auth/auth-request.interface';
 
 async function bootstrap() {
   collectDefaultMetrics();
@@ -43,9 +45,8 @@ async function bootstrap() {
     .setVersion('1.0.0')
     .addBearerAuth()
     .build();
-  // SwaggerModule espera INestApplication (Express); Fastify é compatível em runtime
-  const document = SwaggerModule.createDocument(app as any, config);
-  SwaggerModule.setup('docs', app as any, document);
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
 
   app.enableShutdownHooks();
 
@@ -62,12 +63,13 @@ async function bootstrap() {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
 
-  fastify.addHook('onRequest', async (req: any, reply: any) => {
-    const cid = req.headers['x-correlation-id'] || uuidv4().replace(/-/g, '');
+  fastify.addHook('onRequest', async (rawReq, reply: FastifyReply) => {
+    const req = rawReq as DecoratedFastifyRequest;
+    const cid = (req.headers['x-correlation-id'] as string | undefined) || uuidv4().replace(/-/g, '');
     req.correlationId = cid;
     reply.header('x-correlation-id', cid);
 
-    const tenantId = req.headers['x-tenant-id'] || '';
+    const tenantId = (req.headers['x-tenant-id'] as string | undefined) || '';
     req.tenantId = tenantId;
 
     const activeSpan = trace.getActiveSpan();
@@ -110,7 +112,7 @@ async function bootstrap() {
     }
   });
 
-  await app.register(helmet as any, {
+  await app.register(helmet, {
     contentSecurityPolicy: false,
   });
 
