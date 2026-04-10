@@ -309,20 +309,16 @@ export async function handleOrderMessage(prisma: PrismaClient, routingKey: strin
     });
     if (!order) return;
 
-    await prisma.$transaction(async (tx) => {
-      if (order.status === 'RESERVED') {
-        for (const item of order.items) {
-          await tx.inventoryItem.update({
-            where: { tenantId_sku: { tenantId, sku: item.sku } },
-            data: { reservedQty: { decrement: item.qty } },
-          });
-        }
-      }
-      await tx.order.update({ where: { id: orderId }, data: { status: 'CONFIRMED' } });
+    if (order.status !== 'CONFIRMED') {
+      log('order.confirmed_skipped_wrong_status', { orderId, tenantId, status: order.status });
+      return;
+    }
 
-      const totalAmount =
-        body.totalAmount ||
-        order.items.reduce((s, i) => s + Number(i.price) * i.qty, 0);
+    const totalAmount =
+      body.totalAmount ||
+      order.items.reduce((s, i) => s + Number(i.price) * i.qty, 0);
+
+    await prisma.$transaction(async (tx) => {
       await tx.outboxEvent.create({
         data: {
           tenantId,
@@ -346,7 +342,7 @@ export async function handleOrderMessage(prisma: PrismaClient, routingKey: strin
       });
     });
 
-    log('order.confirmed_and_charge_requested', { orderId, tenantId, correlationId });
+    log('order.confirmed_charge_requested', { orderId, tenantId, correlationId });
     return;
   }
 
