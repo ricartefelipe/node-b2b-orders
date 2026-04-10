@@ -38,7 +38,7 @@ describe('AuthService', () => {
         id: 'u1',
         email: 'ops@demo',
         passwordHash: 'hash',
-        tenantId: 'tenant_demo',
+        tenantId: '00000000-0000-0000-0000-000000000002',
         isGlobalAdmin: false,
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
@@ -51,12 +51,12 @@ describe('AuthService', () => {
         id: 'u1',
         email: 'ops@demo',
         passwordHash: 'hash',
-        tenantId: 'tenant_demo',
+        tenantId: '00000000-0000-0000-0000-000000000002',
         isGlobalAdmin: false,
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       mockPrisma.tenant.findUnique.mockResolvedValue({
-        id: 'tenant_demo',
+        id: '00000000-0000-0000-0000-000000000002',
         plan: 'pro',
         region: 'region-a',
       });
@@ -66,7 +66,7 @@ describe('AuthService', () => {
       ]);
       mockJwt.signAsync.mockResolvedValue('jwt-token');
 
-      const result = await service.issueToken('ops@demo', 'ops123', 'tenant_demo');
+      const result = await service.issueToken('ops@demo', 'ops123', '00000000-0000-0000-0000-000000000002');
       expect(result).toEqual({ token: 'jwt-token', expiresIn: expect.any(Number) });
     });
   });
