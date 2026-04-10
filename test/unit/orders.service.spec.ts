@@ -12,6 +12,7 @@ const mockTx = {
     update: jest.fn(),
   },
   outboxEvent: { create: jest.fn() },
+  inventoryItem: { update: jest.fn() },
 };
 
 const mockPrisma = {
