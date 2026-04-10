@@ -5,13 +5,13 @@ module.exports = {
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'clover'],
-  // Current baseline — raise toward target as more tests are added:
+  // Ratchet baseline — raise toward target as more tests are added:
   // target: branches 50 / functions 60 / lines 60 / statements 60
   coverageThreshold: {
     global: {
       branches: 20,
-      functions: 22,
-      lines: 25,
+      functions: 23,
+      lines: 26,
       statements: 25,
     },
   },
