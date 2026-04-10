@@ -19,7 +19,7 @@ async function main() {
     .addBearerAuth()
     .build();
 
-  const raw = SwaggerModule.createDocument(app as any, config) as unknown as Record<
+  const raw = SwaggerModule.createDocument(app, config) as unknown as Record<
     string,
     unknown
   >;

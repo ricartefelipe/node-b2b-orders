@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { createHmac } from 'crypto';
 
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
@@ -75,7 +76,7 @@ export class WebhooksService {
       data: endpoints.map((ep) => ({
         endpointId: ep.id,
         eventType,
-        payload: payload as any,
+        payload: payload as Prisma.InputJsonValue,
       })),
     });
 

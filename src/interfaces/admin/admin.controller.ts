@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { ChaosConfigDto } from './dto';
 
@@ -20,15 +21,15 @@ export class AdminController {
 
   @Get('chaos')
   @Permission('admin:write')
-  async getChaos(@Req() req: any) {
-    const tenantId = req.headers['x-tenant-id'];
+  async getChaos(@Req() req: AuthRequest) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.redis.getChaosConfig(tenantId);
   }
 
   @Put('chaos')
   @Permission('admin:write')
-  async setChaos(@Req() req: any, @Body() body: ChaosConfigDto) {
-    const tenantId = req.headers['x-tenant-id'];
+  async setChaos(@Req() req: AuthRequest, @Body() body: ChaosConfigDto) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     await this.redis.setChaosConfig(tenantId, body);
     return body;
   }
