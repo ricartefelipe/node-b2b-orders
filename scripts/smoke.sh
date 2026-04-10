@@ -14,7 +14,7 @@ if [ "${SKIP_UP:-0}" != "1" ]; then
     ./scripts/seed.sh
   fi
 fi
-TENANT="tenant_demo"
+TENANT="00000000-0000-0000-0000-000000000002"
 PASS=0
 FAIL=0
 
@@ -48,7 +48,7 @@ assert_eq "$READYZ" "ok" "readyz"
 echo "[2] Get token"
 TOKEN_JSON=$(curl -sS -X POST "$API_BASE/v1/auth/token" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"ops@demo.example.com","password":"ops123","tenantId":"tenant_demo"}')
+  -d '{"email":"ops@demo.example.com","password":"ops123","tenantId":"00000000-0000-0000-0000-000000000002"}')
 TOKEN=$(json_get "$TOKEN_JSON" "access_token")
 assert_eq "$(test -n "$TOKEN" && echo ok || echo fail)" "ok" "token issued"
 
@@ -149,7 +149,7 @@ assert_eq "$(test "$HAS_ORDERS_CREATED" -ge 1 && echo ok || echo fail)" "ok" "bu
 echo "[11] Sales user: read OK, write blocked"
 SALES_TOKEN_JSON=$(curl -sS -X POST "$API_BASE/v1/auth/token" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"sales@demo.example.com","password":"sales123","tenantId":"tenant_demo"}')
+  -d '{"email":"sales@demo.example.com","password":"sales123","tenantId":"00000000-0000-0000-0000-000000000002"}')
 SALES_TOKEN=$(json_get "$SALES_TOKEN_JSON" "access_token")
 
 SALES_LIST_CODE=$(curl -sS -o /dev/null -w "%{http_code}" "$API_BASE/v1/orders" \
