@@ -31,8 +31,8 @@ describe('TenantGuard', () => {
 
   it('should allow when tenant matches token tid', async () => {
     const ctx = createMockContext(
-      { tid: 'tenant_demo', sub: 'u1' },
-      { 'x-tenant-id': 'tenant_demo' },
+      { tid: '00000000-0000-0000-0000-000000000002', sub: 'u1' },
+      { 'x-tenant-id': '00000000-0000-0000-0000-000000000002' },
     );
     expect(await guard.canActivate(ctx)).toBe(true);
   });
@@ -46,7 +46,7 @@ describe('TenantGuard', () => {
   });
 
   it('should deny and log audit when X-Tenant-Id header is missing', async () => {
-    const ctx = createMockContext({ tid: 'tenant_demo', sub: 'u1' }, {});
+    const ctx = createMockContext({ tid: '00000000-0000-0000-0000-000000000002', sub: 'u1' }, {});
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -60,7 +60,7 @@ describe('TenantGuard', () => {
   });
 
   it('should deny and log audit when user is missing', async () => {
-    const ctx = createMockContext(undefined, { 'x-tenant-id': 'tenant_demo' });
+    const ctx = createMockContext(undefined, { 'x-tenant-id': '00000000-0000-0000-0000-000000000002' });
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
     expect(mockAudit.log).toHaveBeenCalledWith(
       expect.objectContaining({
