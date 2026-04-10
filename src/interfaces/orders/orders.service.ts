@@ -120,6 +120,13 @@ export class OrdersService {
     const totalAmount = order.items.reduce((sum, item) => sum + Number(item.price) * item.qty, 0);
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      for (const item of order.items) {
+        await tx.inventoryItem.update({
+          where: { tenantId_sku: { tenantId, sku: item.sku } },
+          data: { reservedQty: { decrement: item.qty } },
+        });
+      }
+
       const o = await tx.order.update({
         where: { id: orderId },
         data: { status: 'CONFIRMED', totalAmount },
@@ -182,6 +189,10 @@ export class OrdersService {
       include: { items: true },
     });
     if (!order) throw new NotFoundException('order not found');
+
+    const CANCELLABLE = ['CREATED', 'RESERVED', 'CONFIRMED'];
+    if (!CANCELLABLE.includes(order.status))
+      throw new ConflictException(`cannot cancel order with status ${order.status}`);
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const o = await tx.order.update({
@@ -274,6 +285,8 @@ export class OrdersService {
       return o;
     });
 
+    this.metrics.ordersShipped.inc({ tenant_id: tenantId });
+
     await this.audit.log({
       tenantId,
       actorSub: actorSub || 'unknown',
@@ -334,6 +347,8 @@ export class OrdersService {
       });
       return o;
     });
+
+    this.metrics.ordersDelivered.inc({ tenant_id: tenantId });
 
     await this.audit.log({
       tenantId,
