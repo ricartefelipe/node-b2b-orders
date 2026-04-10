@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 
 import { ImportService } from './import.service';
 import { ImportBodyDto } from './dto';
@@ -21,8 +22,8 @@ export class ImportController {
 
   @Post('products')
   @Permission('admin:write')
-  async importProducts(@Req() req: any, @Body() body: ImportBodyDto) {
-    const tenantId = req.headers['x-tenant-id'];
+  async importProducts(@Req() req: AuthRequest, @Body() body: ImportBodyDto) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     const actorSub = req.user?.sub || 'unknown';
     const correlationId = req.correlationId || '';
     return this.importService.importProducts(tenantId, actorSub, correlationId, body.format, body.data);
@@ -30,8 +31,8 @@ export class ImportController {
 
   @Post('inventory')
   @Permission('admin:write')
-  async importInventory(@Req() req: any, @Body() body: ImportBodyDto) {
-    const tenantId = req.headers['x-tenant-id'];
+  async importInventory(@Req() req: AuthRequest, @Body() body: ImportBodyDto) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     const actorSub = req.user?.sub || 'unknown';
     const correlationId = req.correlationId || '';
     return this.importService.importInventory(tenantId, actorSub, correlationId, body.format, body.data);
@@ -39,8 +40,8 @@ export class ImportController {
 
   @Post('orders')
   @Permission('admin:write')
-  async importOrders(@Req() req: any, @Body() body: ImportBodyDto) {
-    const tenantId = req.headers['x-tenant-id'];
+  async importOrders(@Req() req: AuthRequest, @Body() body: ImportBodyDto) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     const actorSub = req.user?.sub || 'unknown';
     const correlationId = req.correlationId || '';
     return this.importService.importOrders(tenantId, actorSub, correlationId, body.format, body.data);

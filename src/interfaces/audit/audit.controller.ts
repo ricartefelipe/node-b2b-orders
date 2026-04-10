@@ -1,11 +1,13 @@
 import { Controller, Get, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { FastifyReply } from 'fastify';
 
 import { JwtAuthGuard } from '../../shared/auth/jwt.guard';
 import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 import { AuditService } from '../../shared/audit/audit.service';
 
 @ApiTags('audit')
@@ -25,14 +27,14 @@ export class AuditController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'offset', required: false, type: Number })
   async list(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Query('action') action?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.audit.query(tenantId, {
       action,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -48,13 +50,13 @@ export class AuditController {
   @ApiQuery({ name: 'startDate', required: false, description: 'ISO 8601 date' })
   @ApiQuery({ name: 'endDate', required: false, description: 'ISO 8601 date' })
   async export(
-    @Req() req: any,
-    @Res() reply: any,
+    @Req() req: AuthRequest,
+    @Res() reply: FastifyReply,
     @Query('action') action?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     const rows = await this.audit.query(tenantId, {
       action,
       startDate: startDate ? new Date(startDate) : undefined,

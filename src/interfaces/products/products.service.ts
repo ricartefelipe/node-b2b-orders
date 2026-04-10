@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, Product } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import {
   PaginatedResponse,
@@ -88,7 +88,7 @@ export class ProductsService {
     sortBy?: string,
     sortOrder?: 'asc' | 'desc',
     rawLimit?: number,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse<Product>> {
     const limit = resolveLimit(rawLimit);
     const where: Prisma.ProductWhereInput = { ...this.tenantFilter(tenantId), active: true };
 
