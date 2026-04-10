@@ -11,7 +11,7 @@ export interface TestContext {
   tenantId: string;
 }
 
-const TEST_TENANT = 'tenant_demo';
+const TEST_TENANT = '00000000-0000-0000-0000-000000000002';
 
 const TEST_JWT_PAYLOAD = {
   sub: 'test@e2e.local',
