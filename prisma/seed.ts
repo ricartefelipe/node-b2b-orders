@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const tenantId = 'tenant_demo';
+  const tenantId = '00000000-0000-0000-0000-000000000002';
 
   await prisma.tenant.upsert({
     where: { id: tenantId },
@@ -334,7 +334,7 @@ async function main() {
     }
   }
 
-  // --- Feature Flags (3 for tenant_demo) ---
+  // --- Feature Flags (3 for demo tenant) ---
   await prisma.featureFlag.upsert({
     where: { tenantId_name: { tenantId, name: 'fast_checkout' } },
     update: { enabled: true, rolloutPercent: 100, allowedRoles: [] },
