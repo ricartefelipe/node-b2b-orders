@@ -22,5 +22,5 @@
       }
     ]
   },
-  "transformIgnorePatterns": ["node_modules/(?!(jose)/)"]
+  "transformIgnorePatterns": ["node_modules/(?!(?:uuid|jose)(?:/|$))"]
 }
