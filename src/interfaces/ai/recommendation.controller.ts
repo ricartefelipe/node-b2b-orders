@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 
 import { RecommendationService } from './recommendation.service';
 
@@ -22,11 +23,11 @@ export class RecommendationController {
   @Permission('analytics:read')
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getForCustomer(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param('customerId') customerId: string,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.recommendations.getRecommendationsForCustomer(tenantId, customerId, limit);
   }
 
@@ -35,11 +36,11 @@ export class RecommendationController {
   @ApiQuery({ name: 'days', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getTrending(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Query('days', new DefaultValuePipe(30), ParseIntPipe) days: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.recommendations.getTrendingProducts(tenantId, days, limit);
   }
 
@@ -47,11 +48,11 @@ export class RecommendationController {
   @Permission('analytics:read')
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getFrequentlyBoughtTogether(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param('sku') sku: string,
     @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit: number,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.recommendations.getFrequentlyBoughtTogether(tenantId, sku, limit);
   }
 
@@ -59,11 +60,11 @@ export class RecommendationController {
   @Permission('analytics:read')
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getPersonalizedFeed(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param('customerId') customerId: string,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
-    const tenantId = req.headers['x-tenant-id'];
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.recommendations.getPersonalizedFeed(tenantId, customerId, limit);
   }
 }

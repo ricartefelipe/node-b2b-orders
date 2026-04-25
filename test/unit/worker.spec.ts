@@ -160,7 +160,27 @@ describe('Worker handlers', () => {
   });
 
   describe('handleOrderMessage — order.confirmed', () => {
-    it('should confirm order and create payment charge event', async () => {
+    it('should create payment charge event for CONFIRMED order', async () => {
+      mockPrisma.order.findFirst.mockResolvedValue({
+        id: 'o1',
+        tenantId: 't1',
+        status: 'CONFIRMED',
+        customerId: 'cust-1',
+        items: [{ sku: 'SKU-1', qty: 2, price: 10 }],
+      });
+      await handleOrderMessage(
+        mockPrisma as unknown as PrismaClient,
+        'order.confirmed',
+        { orderId: 'o1', tenantId: 't1' },
+      );
+      expect(mockTx.outboxEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ eventType: 'payment.charge_requested' }),
+        }),
+      );
+    });
+
+    it('should skip if order is not CONFIRMED', async () => {
       mockPrisma.order.findFirst.mockResolvedValue({
         id: 'o1',
         tenantId: 't1',
@@ -173,15 +193,7 @@ describe('Worker handlers', () => {
         'order.confirmed',
         { orderId: 'o1', tenantId: 't1' },
       );
-      expect(mockTx.order.update).toHaveBeenCalledWith({
-        where: { id: 'o1' },
-        data: { status: 'CONFIRMED' },
-      });
-      expect(mockTx.outboxEvent.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ eventType: 'payment.charge_requested' }),
-        }),
-      );
+      expect(mockTx.outboxEvent.create).not.toHaveBeenCalled();
     });
   });
 

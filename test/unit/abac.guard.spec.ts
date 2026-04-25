@@ -131,6 +131,38 @@ describe('AbacGuard', () => {
     expect(await guard.canActivate(ctx)).toBe(true);
   });
 
+  it('should treat professional plan as pro for ABAC', async () => {
+    mockReflector.getAllAndOverride.mockReturnValue('orders:write');
+    mockPrisma.policy.findFirst.mockResolvedValue({
+      effect: 'ALLOW',
+      allowedPlans: '["pro","enterprise"]',
+      allowedRegions: '[]',
+      enabled: true,
+    });
+    const ctx = createMockContext({
+      tid: 't1',
+      plan: 'professional',
+      region: 'region-a',
+    });
+    expect(await guard.canActivate(ctx)).toBe(true);
+  });
+
+  it('should map us-east-1 region to region-a for ABAC', async () => {
+    mockReflector.getAllAndOverride.mockReturnValue('orders:read');
+    mockPrisma.policy.findFirst.mockResolvedValue({
+      effect: 'ALLOW',
+      allowedPlans: '["pro"]',
+      allowedRegions: '["region-a"]',
+      enabled: true,
+    });
+    const ctx = createMockContext({
+      tid: 't1',
+      plan: 'pro',
+      region: 'us-east-1',
+    });
+    expect(await guard.canActivate(ctx)).toBe(true);
+  });
+
   it('should deny free tenant when policy requires pro or above', async () => {
     mockReflector.getAllAndOverride.mockReturnValue('orders:write');
     mockPrisma.policy.findFirst.mockResolvedValue({

@@ -20,8 +20,8 @@ const isJsonFormat =
           };
           return {
             service: 'node-b2b-orders',
-            correlationId: (req as any)?.correlationId || getHeader('x-correlation-id') || '',
-            tenantId: (req as any)?.tenantId || getHeader('x-tenant-id') || '',
+            correlationId: req?.correlationId || getHeader('x-correlation-id') || '',
+            tenantId: req?.tenantId || getHeader('x-tenant-id') || '',
           };
         },
       },

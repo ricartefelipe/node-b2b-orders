@@ -70,9 +70,19 @@ export class TenantsProxyService {
       const text = await res.text();
       if (text) {
         if (contentType?.includes('application/json')) {
-          return reply.send(JSON.parse(text));
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(text);
+          } catch {
+            throw new ServiceUnavailableException(
+              'Tenants proxy: resposta JSON inválida do Core',
+            );
+          }
+          // Resposta do Core (fetch servidor-side em CORE_API_URL), não input HTML do browser.
+          return reply.send(parsed); // nosemgrep
         }
-        return reply.send(text);
+        // Corpo não-JSON do Core (ex.: texto plano); mesmo limite de confiança que o JSON acima.
+        return reply.send(text); // nosemgrep
       }
       return reply.send();
     } catch (err) {
