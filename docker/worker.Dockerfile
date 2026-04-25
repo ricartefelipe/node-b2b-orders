@@ -29,7 +29,8 @@ RUN chown -R app:app /app/node_modules /app/prisma
 
 USER app
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+# start-period: RabbitMQ pode demorar (retries com backoff) — o processo escreve heartbeat desde o início.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
   CMD find /tmp/worker-heartbeat -mmin -1 | grep -q . || exit 1
 
 CMD ["node", "dist/src/worker/main.js"]

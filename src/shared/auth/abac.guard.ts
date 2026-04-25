@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { PERMISSION_KEY } from './permissions.decorator';
 import { AuditService } from '../audit/audit.service';
+import { AuthRequest } from './auth-request.interface';
 
 /** Ordem de planos (maior índice = tier mais alto). Usado para comparar plano do JWT com allowedPlans. */
 const PLAN_TIER: Record<string, number> = {
@@ -27,7 +28,7 @@ export class AbacGuard implements CanActivate {
     ]);
     if (!required) return true;
 
-    const req: any = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<AuthRequest>();
     const user = req.user;
     if (!user) {
       await this.logDenied(req, required, 'missing_user', 'Missing user');
@@ -47,8 +48,8 @@ export class AbacGuard implements CanActivate {
       throw new ForbiddenException('Policy denies');
     }
 
-    const plan = (user.plan || 'free').trim().toLowerCase();
-    const region = (user.region || 'region-a').trim().toLowerCase();
+    const plan = this.normalizeJwtPlan((user as { plan?: unknown }).plan);
+    const region = this.normalizeJwtRegion((user as { region?: unknown }).region);
 
     const plans: string[] = this.parseJsonArray(policy.allowedPlans).map(p =>
       String(p).trim().toLowerCase(),
@@ -71,6 +72,25 @@ export class AbacGuard implements CanActivate {
    * allowedPlans define o conjunto de tiers permitidos; interpretamos o mínimo exigido como
    * min(tier) e permitimos qualquer tenant com tier >= esse mínimo (ex.: enterprise com política só ["pro"]).
    */
+  /** Alinha claims do Core (signup/UI) com tiers ABAC (ex. professional → pro, us-east-1 → region-a). */
+  private normalizeJwtPlan(raw: unknown): string {
+    const p = String(raw ?? '')
+      .trim()
+      .toLowerCase();
+    if (!p) return 'free';
+    if (p === 'professional') return 'pro';
+    return p;
+  }
+
+  private normalizeJwtRegion(raw: unknown): string {
+    const r = String(raw ?? '')
+      .trim()
+      .toLowerCase();
+    if (!r) return 'region-a';
+    if (r === 'us-east-1') return 'region-a';
+    return r;
+  }
+
   private planAllowed(plan: string, allowed: string[]): boolean {
     if (allowed.includes(plan)) return true;
     const userTier = PLAN_TIER[plan];
@@ -92,9 +112,9 @@ export class AbacGuard implements CanActivate {
     }
   }
 
-  private async logDenied(req: any, permission: string, reason: string, message: string): Promise<void> {
+  private async logDenied(req: AuthRequest, permission: string, reason: string, message: string): Promise<void> {
     await this.audit.log({
-      tenantId: req.headers?.['x-tenant-id'] || undefined,
+      tenantId: req.tenantId || undefined,
       actorSub: req.user?.sub || 'unknown',
       action: 'access_denied',
       target: `${req.method} ${req.url}`,

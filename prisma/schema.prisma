@@ -9,7 +9,7 @@ datasource db {
 }
 
 model Tenant {
-  id        String   @id
+  id        String   @id @db.Uuid
   name      String
   plan      String   @default("pro")
   region    String   @default("region-a")
@@ -23,7 +23,7 @@ model Tenant {
 
 model User {
   id            String   @id @default(uuid())
-  tenantId      String?
+  tenantId      String?  @db.Uuid
   tenant        Tenant?  @relation(fields: [tenantId], references: [id])
   email         String   @unique
   passwordHash  String
@@ -80,7 +80,7 @@ model Policy {
 
 model FeatureFlag {
   id             String   @id @default(uuid())
-  tenantId       String
+  tenantId       String   @db.Uuid
   name           String
   enabled        Boolean  @default(false)
   rolloutPercent Int      @default(100)
@@ -94,7 +94,7 @@ model FeatureFlag {
 
 model AuditLog {
   id            String   @id @default(uuid())
-  tenantId      String?
+  tenantId      String?  @db.Uuid
   actorSub      String
   action        String
   target        String
@@ -105,7 +105,7 @@ model AuditLog {
 
 model Order {
   id           String      @id @default(uuid())
-  tenantId     String
+  tenantId     String      @db.Uuid
   customerId   String
   status       String      @default("CREATED")
   totalAmount  Decimal?    @db.Decimal(18,2)
@@ -134,7 +134,7 @@ model OrderItem {
 
 model InventoryItem {
   id          String   @id @default(uuid())
-  tenantId    String
+  tenantId    String   @db.Uuid
   sku         String
   availableQty Int     @default(0)
   reservedQty  Int     @default(0)
@@ -146,7 +146,7 @@ model InventoryItem {
 
 model InventoryAdjustment {
   id             String   @id @default(uuid())
-  tenantId       String
+  tenantId       String   @db.Uuid
   sku            String
   type           String
   qty            Int
@@ -162,7 +162,7 @@ model InventoryAdjustment {
 
 model Product {
   id          String   @id @default(uuid())
-  tenantId    String   @map("tenant_id")
+  tenantId    String   @db.Uuid @map("tenant_id")
   sku         String
   name        String
   description String   @default("")
@@ -186,7 +186,7 @@ model Product {
 
 model OutboxEvent {
   id           String   @id @default(uuid())
-  tenantId     String
+  tenantId     String   @db.Uuid
   eventType    String
   aggregateType String
   aggregateId  String
@@ -205,7 +205,7 @@ model OutboxEvent {
 
 model WebhookEndpoint {
   id        String   @id @default(uuid())
-  tenantId  String
+  tenantId  String   @db.Uuid
   url       String
   events    String[]
   secret    String

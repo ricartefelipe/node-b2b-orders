@@ -23,7 +23,26 @@ const PAYMENTS_EXCHANGE = process.env.PAYMENTS_EXCHANGE || 'payments.x';
 const PAYMENTS_QUEUE = process.env.PAYMENTS_INBOUND_QUEUE || 'orders.payments';
 const PAYMENTS_DLQ = process.env.PAYMENTS_DLQ || 'orders.payments.dlq';
 
-type AnyJson = any;
+interface OrderEventBody {
+  orderId: string;
+  tenantId: string;
+  correlationId?: string;
+  totalAmount?: number;
+  customerId?: string;
+  items?: Array<{ sku: string; qty: number; price: number | string }>;
+  currency?: string;
+  trackingCode?: string;
+}
+
+interface PaymentEventBody {
+  orderId?: string;
+  order_id?: string;
+  tenantId?: string;
+  tenant_id?: string;
+  correlationId?: string;
+  correlation_id?: string;
+  [key: string]: unknown;
+}
 
 const DEDUP_TTL_SECONDS = 86_400; // 24h
 
@@ -119,10 +138,11 @@ async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: 
       });
       if (claimed.count === 0) continue;
 
+      const evPayload = ev.payload as Record<string, unknown>;
       const payload = {
-        ...(ev.payload as AnyJson),
+        ...evPayload,
         tenantId: ev.tenantId,
-        correlationId: (ev.payload as AnyJson)?.correlationId || '',
+        correlationId: (evPayload.correlationId as string) || '',
       };
       const headers = {
         'X-Correlation-Id': payload.correlationId || '',
@@ -190,7 +210,7 @@ export async function cleanupOldAuditLogs(prisma: PrismaClient): Promise<void> {
   }
 }
 
-export async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body: AnyJson) {
+export async function handleOrderMessage(prisma: PrismaClient, routingKey: string, body: OrderEventBody) {
   const orderId = body.orderId as string;
   const tenantId = body.tenantId as string;
   const correlationId = body.correlationId || '';
@@ -289,20 +309,16 @@ export async function handleOrderMessage(prisma: PrismaClient, routingKey: strin
     });
     if (!order) return;
 
-    await prisma.$transaction(async (tx) => {
-      if (order.status === 'RESERVED') {
-        for (const item of order.items) {
-          await tx.inventoryItem.update({
-            where: { tenantId_sku: { tenantId, sku: item.sku } },
-            data: { reservedQty: { decrement: item.qty } },
-          });
-        }
-      }
-      await tx.order.update({ where: { id: orderId }, data: { status: 'CONFIRMED' } });
+    if (order.status !== 'CONFIRMED') {
+      log('order.confirmed_skipped_wrong_status', { orderId, tenantId, status: order.status });
+      return;
+    }
 
-      const totalAmount =
-        body.totalAmount ||
-        order.items.reduce((s: number, i: any) => s + Number(i.price) * i.qty, 0);
+    const totalAmount =
+      body.totalAmount ||
+      order.items.reduce((s, i) => s + Number(i.price) * i.qty, 0);
+
+    await prisma.$transaction(async (tx) => {
       await tx.outboxEvent.create({
         data: {
           tenantId,
@@ -314,7 +330,7 @@ export async function handleOrderMessage(prisma: PrismaClient, routingKey: strin
             tenantId,
             correlationId,
             customerId: body.customerId || order.customerId,
-            items: (body.items || order.items).map((i: any) => ({
+            items: (body.items ?? order.items).map((i) => ({
               sku: i.sku,
               qty: i.qty,
               price: Number(i.price),
@@ -326,7 +342,7 @@ export async function handleOrderMessage(prisma: PrismaClient, routingKey: strin
       });
     });
 
-    log('order.confirmed_and_charge_requested', { orderId, tenantId, correlationId });
+    log('order.confirmed_charge_requested', { orderId, tenantId, correlationId });
     return;
   }
 
@@ -341,7 +357,7 @@ export async function handleOrderMessage(prisma: PrismaClient, routingKey: strin
   }
 }
 
-export async function handlePaymentMessage(prisma: PrismaClient, routingKey: string, body: AnyJson) {
+export async function handlePaymentMessage(prisma: PrismaClient, routingKey: string, body: PaymentEventBody) {
   if (routingKey === 'payment.settled') {
     const orderId = body.orderId || body.order_id;
     const tenantId = body.tenantId || body.tenant_id;
@@ -489,12 +505,12 @@ async function setupChannelsAndConsumers(conn: amqp.ChannelModel) {
   await chConsume.prefetch(10);
   await chConsume.consume(
     QUEUE,
-    async (msg: any) => {
+    async (msg: amqp.ConsumeMessage | null) => {
       if (!msg) return;
       const routingKey = msg.fields.routingKey;
       try {
-        const body = JSON.parse(msg.content.toString('utf8'));
-        const eventId = body.orderId || msg.properties.messageId || msg.fields.deliveryTag;
+        const body: OrderEventBody = JSON.parse(msg.content.toString('utf8'));
+        const eventId = body.orderId || msg.properties.messageId || String(msg.fields.deliveryTag);
         if (activeRedis && await isAlreadyProcessed(activeRedis, routingKey, String(eventId))) {
           log('dedup.skipped', { routingKey, eventId });
           chConsume.ack(msg);
@@ -513,12 +529,12 @@ async function setupChannelsAndConsumers(conn: amqp.ChannelModel) {
   await chPayments.prefetch(10);
   await chPayments.consume(
     PAYMENTS_QUEUE,
-    async (msg: any) => {
+    async (msg: amqp.ConsumeMessage | null) => {
       if (!msg) return;
       const routingKey = msg.fields.routingKey;
       try {
-        const body = JSON.parse(msg.content.toString('utf8'));
-        const eventId = body.orderId || body.order_id || msg.properties.messageId || msg.fields.deliveryTag;
+        const body: PaymentEventBody = JSON.parse(msg.content.toString('utf8'));
+        const eventId = body.orderId || body.order_id || msg.properties.messageId || String(msg.fields.deliveryTag);
         if (activeRedis && await isAlreadyProcessed(activeRedis, routingKey, String(eventId))) {
           log('dedup.skipped', { routingKey, eventId });
           chPayments.ack(msg);
@@ -545,6 +561,12 @@ async function main() {
     }
   }
 
+  // Antes: o heartbeat só era escrito após Redis + Rabbit + filas. O HEALTHCHECK do Docker
+  // (e o Railway) falhavam com start-period curto, matando o container enquanto o Rabbit
+  // ainda fazia retry. O ficheiro deve existir durante toda a fase de arranque.
+  writeHeartbeat();
+  heartbeatInterval = setInterval(writeHeartbeat, 10_000);
+
   const prisma = new PrismaClient();
   activePrisma = prisma;
 
@@ -561,9 +583,6 @@ async function main() {
   activeConnection = conn;
 
   await setupChannelsAndConsumers(conn);
-
-  writeHeartbeat();
-  heartbeatInterval = setInterval(writeHeartbeat, 10_000);
 
   if (AUDIT_RETENTION_DAYS > 0) {
     cleanupOldAuditLogs(prisma).catch((e) => log('audit.retention_first_run_failed', { error: String(e) }));

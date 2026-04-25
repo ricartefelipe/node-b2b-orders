@@ -93,12 +93,12 @@ describe('Saga flow: order → payment → settlement', () => {
   });
 
   describe('Phase 2 — order.confirmed triggers charge request', () => {
-    it('should confirm RESERVED order and publish payment.charge_requested', async () => {
+    it('should publish payment.charge_requested for CONFIRMED order', async () => {
       const order = {
         id: 'o1',
         tenantId: 't1',
         customerId: 'cust-1',
-        status: 'RESERVED',
+        status: 'CONFIRMED',
         items: [
           { sku: 'SKU-A', qty: 2, price: 25 },
           { sku: 'SKU-B', qty: 1, price: 50 },
@@ -110,11 +110,6 @@ describe('Saga flow: order → payment → settlement', () => {
         orderId: 'o1',
         tenantId: 't1',
         correlationId: 'corr-2',
-      });
-
-      expect(mockTx.order.update).toHaveBeenCalledWith({
-        where: { id: 'o1' },
-        data: { status: 'CONFIRMED' },
       });
 
       const outboxCall = mockTx.outboxEvent.create.mock.calls[0][0];
@@ -130,12 +125,31 @@ describe('Saga flow: order → payment → settlement', () => {
       expect(outboxCall.data.payload.items).toHaveLength(2);
     });
 
+    it('should skip charge_requested when order is still RESERVED', async () => {
+      const order = {
+        id: 'o1',
+        tenantId: 't1',
+        customerId: 'cust-1',
+        status: 'RESERVED',
+        items: [{ sku: 'SKU-A', qty: 1, price: 30 }],
+      };
+      mockPrisma.order.findFirst.mockResolvedValue(order);
+
+      await handleOrderMessage(prisma(), 'order.confirmed', {
+        orderId: 'o1',
+        tenantId: 't1',
+        correlationId: 'corr-skip',
+      });
+
+      expect(mockTx.outboxEvent.create).not.toHaveBeenCalled();
+    });
+
     it('should publish charge_requested event conforming to JSON schema', async () => {
       const order = {
         id: '123e4567-e89b-12d3-a456-426614174000',
         tenantId: 't1',
         customerId: 'cust-1',
-        status: 'RESERVED',
+        status: 'CONFIRMED',
         items: [{ sku: 'SKU-A', qty: 1, price: 30 }],
       };
       mockPrisma.order.findFirst.mockResolvedValue(order);
@@ -232,22 +246,20 @@ describe('Saga flow: order → payment → settlement', () => {
       await handleOrderMessage(prisma(), 'order.created', { orderId, tenantId });
       expect(statusHistory).toContain('RESERVED');
 
-      // Step 2: order.confirmed → CONFIRMED + charge_requested outbox
+      // Step 2: order.confirmed (API already set CONFIRMED) → charge_requested outbox
       jest.clearAllMocks();
       mockPrisma.$transaction.mockImplementation(
         (fn: (tx: any) => Promise<void>) => fn(mockTx),
       );
+      mockTx.outboxEvent.create.mockResolvedValue({});
       mockPrisma.order.findFirst.mockResolvedValue({
         id: orderId,
         tenantId,
         customerId: 'cust-1',
-        status: 'RESERVED',
+        status: 'CONFIRMED',
         items: [{ sku: 'SKU-A', qty: 2, price: 50 }],
       });
       await handleOrderMessage(prisma(), 'order.confirmed', { orderId, tenantId });
-      expect(mockTx.order.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { status: 'CONFIRMED' } }),
-      );
       expect(mockTx.outboxEvent.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ eventType: 'payment.charge_requested' }),
@@ -296,7 +308,7 @@ describe('Saga flow: order → payment → settlement', () => {
         id: 'o1',
         tenantId: 't1',
         customerId: 'cust-1',
-        status: 'RESERVED',
+        status: 'CONFIRMED',
         items: [{ sku: 'SKU-A', qty: 1, price: 10 }],
       });
 

@@ -16,6 +16,7 @@ API B2B de **Pedidos** e **Inventário** com NestJS, Fastify, Prisma, PostgreSQL
 
 ## Índice
 
+- [Branches e ambientes na nuvem](#branches-e-ambientes-na-nuvem)
 - [Visão geral](#visão-geral)
 - [Quando usar](#quando-usar)
 - [Arquitetura](#arquitetura)
@@ -34,6 +35,17 @@ API B2B de **Pedidos** e **Inventário** com NestJS, Fastify, Prisma, PostgreSQL
 - [Troubleshooting](#troubleshooting)
 - [E2E com Fluxe B2B Suite](#e2e-com-fluxe-b2b-suite)
 - [Licença](#licença)
+
+---
+
+## Branches e ambientes na nuvem
+
+| Branch Git | Deploy Railway | Função |
+|------------|----------------|--------|
+| **`develop`** | **Staging** | **Teste** — integração, QA, demos; **não** é produção com clientes reais. |
+| **`master`** | **Produção** | **Para valer** — dados e operações reais. |
+
+Referência completa: [AMBIENTES-CONFIGURACAO.md](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/AMBIENTES-CONFIGURACAO.md) no repositório **fluxe-b2b-suite**.
 
 ---
 
@@ -138,8 +150,8 @@ Isso sobe infraestrutura, API, worker, aplica migrações, seed e executa smoke 
 | Email | Senha | Tenant | Role | Permissões |
 |-------|-------|--------|------|------------|
 | admin@local | admin123 | * (global) | admin | Todas |
-| ops@demo.example.com | ops123 | tenant_demo | ops | orders:rw, inventory:rw, products:rw, profile:r |
-| sales@demo.example.com | sales123 | tenant_demo | sales | orders:r, inventory:r, products:r, profile:r |
+| ops@demo.example.com | ops123 | 00000000-0000-0000-0000-000000000002 | ops | orders:rw, inventory:rw, products:rw, profile:r |
+| sales@demo.example.com | sales123 | 00000000-0000-0000-0000-000000000002 | sales | orders:r, inventory:r, products:r, profile:r |
 
 ---
 
@@ -224,11 +236,11 @@ CREATED → (worker reserva estoque) → RESERVED → (confirm) → CONFIRMED �
 Em `/v1/metrics` (Prometheus):
 
 ```
-orders_created_total{tenant_id="tenant_demo"}
-orders_confirmed_total{tenant_id="tenant_demo"}
-orders_cancelled_total{tenant_id="tenant_demo"}
-inventory_reserved_total{tenant_id="tenant_demo"}
-inventory_adjusted_total{tenant_id="tenant_demo",type="IN"}
+orders_created_total{tenant_id="00000000-0000-0000-0000-000000000002"}
+orders_confirmed_total{tenant_id="00000000-0000-0000-0000-000000000002"}
+orders_cancelled_total{tenant_id="00000000-0000-0000-0000-000000000002"}
+inventory_reserved_total{tenant_id="00000000-0000-0000-0000-000000000002"}
+inventory_adjusted_total{tenant_id="00000000-0000-0000-0000-000000000002",type="IN"}
 ```
 
 ---
@@ -331,7 +343,7 @@ npm run test
 
 1. **Subir:** `./scripts/up.sh && ./scripts/migrate.sh && ./scripts/seed.sh`
 2. **Swagger:** http://localhost:3000/docs
-3. **Auth:** `POST /v1/auth/token` com `{"email":"ops@demo.example.com","password":"ops123","tenantId":"tenant_demo"}`
+3. **Auth:** `POST /v1/auth/token` com `{"email":"ops@demo.example.com","password":"ops123","tenantId":"00000000-0000-0000-0000-000000000002"}`
 4. **Criar pedido:** `POST /v1/orders` com `Idempotency-Key: demo-$(date +%s)` e body `{"customerId":"CUST-1","items":[{"sku":"SKU-1","qty":2,"price":10.5}]}`
 5. **Aguardar worker:** ~2–3s; `GET /v1/orders/{id}` — status CREATED → RESERVED
 6. **Confirmar:** `POST /v1/orders/{id}/confirm` com `Idempotency-Key: demo-confirm-$(date +%s)`
@@ -371,6 +383,7 @@ O serviço usa **Fastify 5.8.4** na dependência direta (`package.json`). O paco
 
 | Problema | Solução |
 |----------|---------|
+| **P3005** / schema não vazio + migrações “não aplicadas” (Railway staging) | Baseline: [docs/RUNBOOK-PRISMA-BASELINE-STAGING.md](docs/RUNBOOK-PRISMA-BASELINE-STAGING.md) e `scripts/prisma-baseline-resolve.sh` (após deploy da imagem que inclui o script: `railway ssh -s node-b2b-orders -- /app/scripts/prisma-baseline-resolve.sh`). |
 | Railway/PostgreSQL partilhado: erro `OutboxEvent` / tabela em falta | Aplicar DDL com **um statement por vez** (limitação Prisma prepared statement); ver `scripts/railway-create-outbox-event-table.cjs` e `railway ssh` + `base64` como no comentário do script. |
 | RabbitMQ "Connection refused" | `docker compose ps`; `./scripts/down.sh && ./scripts/up.sh` |
 | Banco fora de sync | `npx prisma generate`, `./scripts/migrate.sh`, `./scripts/seed.sh` |

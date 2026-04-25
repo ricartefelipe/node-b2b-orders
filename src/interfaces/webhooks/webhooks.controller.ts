@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 
 import { CreateWebhookDto } from './dto';
 import { WebhooksService } from './webhooks.service';
@@ -20,30 +21,30 @@ export class WebhooksController {
 
   @Post()
   @Permission('webhooks:write')
-  async register(@Req() req: any, @Body() body: CreateWebhookDto) {
-    const tenantId = req.headers['x-tenant-id'];
+  async register(@Req() req: AuthRequest, @Body() body: CreateWebhookDto) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.webhooks.registerEndpoint(tenantId, body.url, body.events, body.secret);
   }
 
   @Get()
   @Permission('webhooks:read')
-  async list(@Req() req: any) {
-    const tenantId = req.headers['x-tenant-id'];
+  async list(@Req() req: AuthRequest) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.webhooks.listEndpoints(tenantId);
   }
 
   @Delete(':id')
   @Permission('webhooks:write')
-  async remove(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
-    const tenantId = req.headers['x-tenant-id'];
+  async remove(@Req() req: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     await this.webhooks.deleteEndpoint(id, tenantId);
     return { deleted: true };
   }
 
   @Get(':id/deliveries')
   @Permission('webhooks:read')
-  async deliveries(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
-    const tenantId = req.headers['x-tenant-id'];
+  async deliveries(@Req() req: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.webhooks.listDeliveries(id, tenantId);
   }
 }

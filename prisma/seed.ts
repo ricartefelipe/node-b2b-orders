@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const tenantId = 'tenant_demo';
+  const tenantId = '00000000-0000-0000-0000-000000000002';
 
   await prisma.tenant.upsert({
     where: { id: tenantId },
@@ -28,6 +28,9 @@ async function main() {
     'billing:write',
     'profile:read',
     'analytics:read',
+    'audit:read',
+    'webhooks:read',
+    'webhooks:write',
   ];
   for (const code of perms) {
     await prisma.permission.upsert({ where: { code }, update: {}, create: { code } });
@@ -35,7 +38,19 @@ async function main() {
 
   const roleMap: Record<string, string[]> = {
     admin: perms,
-    ops: ['orders:write', 'orders:read', 'inventory:read', 'inventory:write', 'products:read', 'products:write', 'profile:read', 'analytics:read'],
+    ops: [
+      'orders:write',
+      'orders:read',
+      'inventory:read',
+      'inventory:write',
+      'products:read',
+      'products:write',
+      'profile:read',
+      'analytics:read',
+      'audit:read',
+      'webhooks:read',
+      'webhooks:write',
+    ],
     sales: ['orders:read', 'inventory:read', 'products:read', 'profile:read', 'analytics:read'],
   };
 
@@ -60,6 +75,9 @@ async function main() {
     { permissionCode: 'profile:read', allowedPlans: '[]', allowedRegions: '[]' },
     { permissionCode: 'billing:write', allowedPlans: '[]', allowedRegions: '[]' },
     { permissionCode: 'analytics:read', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'audit:read', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'webhooks:read', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
+    { permissionCode: 'webhooks:write', allowedPlans: '["pro","enterprise"]', allowedRegions: '[]' },
   ];
 
   for (const p of policies) {
@@ -316,7 +334,7 @@ async function main() {
     }
   }
 
-  // --- Feature Flags (3 for tenant_demo) ---
+  // --- Feature Flags (3 for demo tenant) ---
   await prisma.featureFlag.upsert({
     where: { tenantId_name: { tenantId, name: 'fast_checkout' } },
     update: { enabled: true, rolloutPercent: 100, allowedRoles: [] },
