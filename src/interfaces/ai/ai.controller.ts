@@ -6,6 +6,7 @@ import { TenantGuard } from '../../shared/auth/tenant.guard';
 import { Permission } from '../../shared/auth/permissions.decorator';
 import { PermissionsGuard } from '../../shared/auth/permissions.guard';
 import { AbacGuard } from '../../shared/auth/abac.guard';
+import { AuthRequest } from '../../shared/auth/auth-request.interface';
 
 import { AiDocsService } from './ai-docs.service';
 
@@ -20,8 +21,8 @@ export class AiController {
 
   @Get('docs')
   @Permission('analytics:read')
-  async getDocs(@Req() req: any) {
-    const tenantId = req.headers['x-tenant-id'];
+  async getDocs(@Req() req: AuthRequest) {
+    const tenantId = req.headers['x-tenant-id'] as string;
     return this.aiDocs.getStructuredDocs(tenantId);
   }
 }
