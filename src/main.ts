@@ -19,6 +19,24 @@ import { RedisService } from './infrastructure/redis/redis.service';
 import { ProblemDetailsFilter } from './shared/filters/problem-details.filter';
 import { DecoratedFastifyRequest } from './shared/auth/auth-request.interface';
 
+/** Rotas que não podem sofrer chaos/limites: probes e documentação. */
+const PROBE_AND_PUBLIC_DOCS: readonly string[] = [
+  '/docs',
+  '/metrics',
+  '/healthz',
+  '/readyz',
+  '/openapi',
+  '/v1/docs',
+  '/v1/metrics',
+  '/v1/healthz',
+  '/v1/readyz',
+  '/v1/openapi',
+];
+
+function isProbeOrPublicPath(path: string): boolean {
+  return PROBE_AND_PUBLIC_DOCS.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
 async function bootstrap() {
   collectDefaultMetrics();
 
@@ -28,8 +46,15 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   const corsOrigins = process.env.CORS_ORIGINS;
-  if (process.env.NODE_ENV === 'production' && !corsOrigins) {
-    throw new Error('CORS_ORIGINS environment variable is required in production (comma-separated)');
+  // Railway usa NODE_ENV=production no build; staging pode não ter CORS listado. Só exigir
+  // CORS com APP_ENV=production explícito (produção de verdade).
+  const requireCorsInProd =
+    process.env.NODE_ENV === 'production' &&
+    (process.env.APP_ENV || '').toLowerCase() === 'production';
+  if (requireCorsInProd && !corsOrigins) {
+    throw new Error(
+      'CORS_ORIGINS is required when APP_ENV=production and NODE_ENV=production (comma-separated origins)'
+    );
   }
   app.enableCors({
     origin: corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : '*',
@@ -79,6 +104,11 @@ async function bootstrap() {
       reply.header('x-trace-id', activeSpan.spanContext().traceId);
     }
 
+    const path: string = (req.url || '').split('?')[0];
+    if (isProbeOrPublicPath(path)) {
+      return;
+    }
+
     const chaos = await redis.getChaosConfig(tenantId || 'public');
     if (chaos.enabled) {
       if (chaos.latencyMs > 0) {
@@ -90,12 +120,6 @@ async function bootstrap() {
           .send({ title: 'Service Unavailable', status: 503, detail: 'chaos failure injected' });
         return;
       }
-    }
-
-    const path: string = (req.url || '').split('?')[0];
-    const bypassPaths = ['/docs', '/metrics', '/healthz', '/readyz', '/openapi', '/v1/docs', '/v1/metrics', '/v1/healthz', '/v1/readyz', '/v1/openapi'];
-    if (bypassPaths.some((p) => path === p || path.startsWith(p + '/'))) {
-      return;
     }
     const method = (req.method || 'GET').toUpperCase();
     const group = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) ? 'write' : 'read';
