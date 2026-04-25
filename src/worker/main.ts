@@ -561,6 +561,12 @@ async function main() {
     }
   }
 
+  // Antes: o heartbeat só era escrito após Redis + Rabbit + filas. O HEALTHCHECK do Docker
+  // (e o Railway) falhavam com start-period curto, matando o container enquanto o Rabbit
+  // ainda fazia retry. O ficheiro deve existir durante toda a fase de arranque.
+  writeHeartbeat();
+  heartbeatInterval = setInterval(writeHeartbeat, 10_000);
+
   const prisma = new PrismaClient();
   activePrisma = prisma;
 
@@ -577,9 +583,6 @@ async function main() {
   activeConnection = conn;
 
   await setupChannelsAndConsumers(conn);
-
-  writeHeartbeat();
-  heartbeatInterval = setInterval(writeHeartbeat, 10_000);
 
   if (AUDIT_RETENTION_DAYS > 0) {
     cleanupOldAuditLogs(prisma).catch((e) => log('audit.retention_first_run_failed', { error: String(e) }));
