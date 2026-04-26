@@ -35,7 +35,8 @@ RUN chmod +x /app/entrypoint.sh /app/scripts/prisma-baseline-resolve.sh
 USER app
 
 EXPOSE 3000
-HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=3 \
+# start-period: migrate + seed (staging) + Nest podem exceder 60s no Railway.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=120s --retries=3 \
     CMD curl -sf http://localhost:3000/v1/healthz || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
