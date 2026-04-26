@@ -56,9 +56,10 @@ async function bootstrap() {
       'CORS_ORIGINS is required when APP_ENV=production and NODE_ENV=production (comma-separated origins)'
     );
   }
+  const allowedOrigins = corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : '*';
   app.enableCors({
-    origin: corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : '*',
-    credentials: true,
+    origin: allowedOrigins,
+    credentials: allowedOrigins !== '*',
   });
 
   app.setGlobalPrefix('v1');

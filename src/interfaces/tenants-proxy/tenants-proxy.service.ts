@@ -19,7 +19,8 @@ export class TenantsProxyService {
     reply: FastifyReply,
     subPath: string,
   ): Promise<void> {
-    const baseUrl = this.config.get<string>('CORE_API_URL');
+    const baseUrl =
+      this.config.get<string>('CORE_API_URL') ?? this.config.get<string>('SAAS_CORE_URL');
     if (!baseUrl) {
       throw new ServiceUnavailableException(
         'Tenants proxy is not configured: CORE_API_URL is missing',
