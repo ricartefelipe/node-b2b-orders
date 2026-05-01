@@ -35,6 +35,10 @@ coverage/
 .idea/
 *.iml
 .vscode/
+.cursor/
+
+# AI assistant config
+AGENTS.md
 
 # OS
 .DS_Store
