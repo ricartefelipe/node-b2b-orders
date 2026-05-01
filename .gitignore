@@ -1,16 +1,44 @@
 node_modules/
 dist/
+
+# Environment (NEVER commit real env files)
 .env
 .env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+*.env
+!*.env.example
+!*.env.local.example
+
+# Secrets & credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+credentials.json
+service-account*.json
+.secrets/
+secrets/
+
+# Coverage
 coverage/
 .coverage
 .nyc_output/
+
+# Logs
 *.log
 
 # IDE
 .idea/
 *.iml
 .vscode/
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Local dev overrides
 .local-prometheus/

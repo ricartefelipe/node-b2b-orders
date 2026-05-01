@@ -100,9 +100,9 @@ async function main() {
     }
   }
 
-  const adminHash = await bcrypt.hash('admin123', 10);
-  const opsHash = await bcrypt.hash('ops123', 10);
-  const salesHash = await bcrypt.hash('sales123', 10);
+  const adminHash = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD ?? 'admin123', 10);
+  const opsHash = await bcrypt.hash(process.env.SEED_OPS_PASSWORD ?? 'ops123', 10);
+  const salesHash = await bcrypt.hash(process.env.SEED_SALES_PASSWORD ?? 'sales123', 10);
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@local' },
