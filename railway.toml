@@ -4,7 +4,8 @@ dockerfilePath = "docker/api.Dockerfile"
 
 [deploy]
 healthcheckPath = "/v1/healthz"
-healthcheckTimeout = 180
+# Migrations + Nest bootstrap podem exceder 3m no staging; Railway falhava antes do listen.
+healthcheckTimeout = 600
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 numReplicas = 1
