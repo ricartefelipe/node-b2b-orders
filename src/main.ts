@@ -142,7 +142,7 @@ async function bootstrap() {
     contentSecurityPolicy: false,
   });
 
-  const port = Number(process.env.HTTP_PORT || 3000);
+  const port = Number(process.env.PORT || process.env.HTTP_PORT || 3000);
   await app.listen(port, '0.0.0.0');
 }
 
