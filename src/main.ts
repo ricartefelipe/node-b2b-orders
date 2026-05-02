@@ -1,3 +1,4 @@
+import { Sentry } from './shared/instrument';
 import './shared/tracing/tracing';
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
@@ -147,5 +148,6 @@ async function bootstrap() {
 
 bootstrap().catch((e) => {
   console.error(e);
+  Sentry.captureException(e instanceof Error ? e : new Error(String(e)));
   process.exit(1);
 });
