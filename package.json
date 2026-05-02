@@ -37,6 +37,7 @@
     "@opentelemetry/sdk-node": "^0.213.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@prisma/client": "^5.10.0",
+    "@sentry/node": "^8.55.2",
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
     "amqplib": "^0.10.3",

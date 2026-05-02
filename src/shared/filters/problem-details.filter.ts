@@ -3,6 +3,7 @@ import { FastifyReply } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
 import { DomainException } from '../exceptions/domain.exception';
 import { DecoratedFastifyRequest } from '../auth/auth-request.interface';
+import { Sentry } from '../instrument';
 
 @Catch()
 export class ProblemDetailsFilter implements ExceptionFilter {
@@ -37,6 +38,14 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     } else if (exception instanceof Error) {
       detail = exception.message;
       this.logger.error(`Unhandled exception: ${exception.message}`, exception.stack);
+    }
+
+    if (status >= 500) {
+      if (exception instanceof Error) {
+        Sentry.captureException(exception);
+      } else {
+        Sentry.captureMessage(`Non-Error 5xx: ${String(exception)}`, 'error');
+      }
     }
 
     const correlationId = request.correlationId || uuidv4().replace(/-/g, '');
