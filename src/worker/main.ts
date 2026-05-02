@@ -1,3 +1,4 @@
+import '../shared/instrument';
 import * as amqp from 'amqplib';
 import * as fs from 'fs';
 import * as path from 'path';
