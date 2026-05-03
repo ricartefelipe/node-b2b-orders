@@ -16,3 +16,4 @@ jobs:
           ./scripts/smoke-post-merge.sh
         env:
           ORDERS_SMOKE_URL: ${{ secrets.ORDERS_SMOKE_URL }}
+          SMOKE_CHECK_READYZ: "1"
