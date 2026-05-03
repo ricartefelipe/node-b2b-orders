@@ -6,6 +6,7 @@ set -euo pipefail
 # Variaveis:
 #   ORDERS_SMOKE_URL ou SMOKE_BASE_URL
 #   SMOKE_REQUIRE_URL=1 — exige URL
+#   SMOKE_CHECK_READYZ=1 — GET /v1/readyz (DB/Redis conforme servidor)
 
 BASE_URL="${ORDERS_SMOKE_URL:-${SMOKE_BASE_URL:-}}"
 REQUIRE="${SMOKE_REQUIRE_URL:-0}"
@@ -19,20 +20,33 @@ fi
 BASE_URL="${BASE_URL%/}"
 echo "[smoke] node-b2b-orders — base ${BASE_URL}"
 
-curl -sfS --max-time 20 "$BASE_URL/v1/healthz" >/dev/null || {
+curl -sfS --max-time 20 "${BASE_URL}/v1/healthz" >/dev/null || {
   echo "[smoke] FALHA: GET /v1/healthz"
   exit 1
 }
 echo "[smoke] OK /v1/healthz"
 
-# Swagger em /docs (JSON em /docs-json); o prefixo global v1 nao aplica a essas rotas no Nest.
-BODY=$(curl -sfS --max-time 20 "$BASE_URL/docs-json") || {
-  echo "[smoke] FALHA: GET /docs-json (Swagger)"
-  exit 1
-}
-if ! grep -q '"openapi"' <<<"$BODY" && ! grep -q '"swagger"' <<<"$BODY"; then
-  echo "[smoke] FALHA: documento OpenAPI inesperado"
+openapi_ok=0
+for path in /docs-json /v1/docs-json; do
+  if BODY=$(curl -sfS --max-time 20 "${BASE_URL}${path}" 2>/dev/null); then
+    if grep -qE '"openapi"|"swagger"' <<<"$BODY"; then
+      openapi_ok=1
+      echo "[smoke] OK OpenAPI JSON em ${path}"
+      break
+    fi
+  fi
+done
+if [[ "$openapi_ok" != "1" ]]; then
+  echo "[smoke] FALHA: OpenAPI JSON (/docs-json ou /v1/docs-json)"
   exit 1
 fi
-echo "[smoke] OK /docs-json"
+
+if [[ "${SMOKE_CHECK_READYZ:-0}" == "1" ]]; then
+  curl -sfS --max-time 25 "${BASE_URL}/v1/readyz" >/dev/null || {
+    echo "[smoke] FALHA: GET /v1/readyz"
+    exit 1
+  }
+  echo "[smoke] OK /v1/readyz"
+fi
+
 echo "[smoke] concluido com sucesso"
