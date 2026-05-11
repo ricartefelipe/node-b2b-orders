@@ -35,10 +35,6 @@ coverage/
 .idea/
 *.iml
 .vscode/
-.cursor/
-
-# Optional local agent policy files (not committed)
-AGENTS.md
 
 # OS
 .DS_Store

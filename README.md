@@ -139,10 +139,10 @@ Isso sobe infraestrutura, API, worker, aplica migrações, seed e executa smoke 
 | Serviço | URL | Credenciais |
 |---------|-----|-------------|
 | Swagger UI | http://localhost:3000/docs | — |
-| RabbitMQ | http://localhost:15673 | guest/guest |
+| RabbitMQ | http://localhost:15673 | <RABBIT_USER>/<RABBIT_PASS> |
 | Prometheus | http://localhost:9091 | — |
-| Grafana | http://localhost:3001 | admin/admin |
-| PostgreSQL | localhost:5433 | app/app |
+| Grafana | http://localhost:3001 | <GRAFANA_USER>/<GRAFANA_PASS> |
+| PostgreSQL | localhost:5433 | <DB_USER>/<DB_PASS> |
 | Redis | localhost:6380 | — |
 
 ### Usuários de teste
@@ -255,8 +255,8 @@ inventory_adjusted_total{tenant_id="00000000-0000-0000-0000-000000000002",type="
 | HTTP_PORT | 3000 | Porta da API |
 | DATABASE_URL | — | Connection string PostgreSQL |
 | REDIS_URL | redis://localhost:6379 | Redis |
-| RABBITMQ_URL | amqp://guest:guest@localhost:5672 | RabbitMQ |
-| JWT_SECRET | change-me | Secret JWT HS256 |
+| RABBITMQ_URL | amqp://<RABBIT_USER>:<RABBIT_PASS>@localhost:5672 | RabbitMQ |
+| JWT_SECRET | — | Secret JWT HS256 (gerar com `openssl rand -hex 32`) |
 | JWT_ISSUER | local-auth | Issuer do token |
 | TOKEN_EXPIRES_SECONDS | 3600 | TTL do token |
 | RATE_LIMIT_WRITE_PER_MIN | 60 | Limite escrita/min |
@@ -279,9 +279,9 @@ cp .env.local.example .env.local
 # Opção B: export manual (ajuste portas ao seu compose)
 docker compose up -d postgres redis rabbitmq
 
-export DATABASE_URL=postgresql://app:app@localhost:5435/app
+export DATABASE_URL=postgresql://<DB_USER>:<DB_PASS>@localhost:5435/app
 export REDIS_URL=redis://localhost:6382
-export RABBITMQ_URL=amqp://guest:guest@localhost:5675
+export RABBITMQ_URL=amqp://<RABBIT_USER>:<RABBIT_PASS>@localhost:5675
 
 npm ci
 npx prisma generate
@@ -318,13 +318,13 @@ Os testes E2E exigem PostgreSQL, Redis e RabbitMQ. Use o `docker-compose.e2e.yml
 docker compose -f docker-compose.e2e.yml up -d
 npm ci && npm run build
 npx prisma generate
-DATABASE_URL=postgresql://app:app@localhost:5432/orders_test npx prisma migrate deploy
-DATABASE_URL=postgresql://app:app@localhost:5432/orders_test npx prisma db seed
+DATABASE_URL=postgresql://<DB_USER>:<DB_PASS>@localhost:5432/orders_test npx prisma migrate deploy
+DATABASE_URL=postgresql://<DB_USER>:<DB_PASS>@localhost:5432/orders_test npx prisma db seed
 
-DATABASE_URL=postgresql://app:app@localhost:5432/orders_test \
+DATABASE_URL=postgresql://<DB_USER>:<DB_PASS>@localhost:5432/orders_test \
 REDIS_URL=redis://localhost:6379 \
-JWT_SECRET=e2e-test-secret-key-do-not-use-in-production \
-RABBITMQ_URL=amqp://guest:guest@localhost:5672 \
+JWT_SECRET=<JWT_SECRET> \
+RABBITMQ_URL=amqp://<RABBIT_USER>:<RABBIT_PASS>@localhost:5672 \
 npm run test:e2e
 ```
 
@@ -403,7 +403,7 @@ Para repetir em **staging** (ex.: Railway) o fluxo mínimo **auth → POST /v1/o
 Para integração com fluxe-b2b-suite e spring-saas-core, o login é feito no Core; esta API **valida** o JWT. Use o mesmo secret e issuer do Spring:
 
 ```bash
-JWT_SECRET=local-dev-secret-min-32-chars-for-hs256-signing
+JWT_SECRET=<JWT_SECRET>
 JWT_ISSUER=spring-saas-core
 ```
 

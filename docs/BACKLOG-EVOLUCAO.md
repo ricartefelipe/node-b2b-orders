@@ -68,11 +68,3 @@ Estado atual por critério de "pronto para venda".
 - [x] Retenção configurável de audit log (TTL/archival)
 - [x] Política de privacidade de dados (PII handling)
 
----
-
-## IA/LLM
-
-- [x] API de dados agregados para análise de demanda
-- [x] Endpoint de anomalias em pedidos
-- [x] Documentação viva gerada por IA
-- [x] Dados de inventário para previsão de reposição
