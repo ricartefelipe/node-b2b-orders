@@ -44,7 +44,7 @@
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "fastify": "5.8.5",
+    "fastify": "5.12.1",
     "ioredis": "^5.3.2",
     "js-yaml": "4.3.1",
     "jwks-rsa": "^4.0.1",
@@ -100,7 +100,7 @@
     "brace-expansion@^2": "2.1.4",
     "brace-expansion@^1": "1.1.18",
     "js-yaml": "4.3.1",
-    "fastify": "5.8.5",
+    "fastify": "5.12.1",
     "@opentelemetry/sdk-trace-base": "2.10.0"
   },
   "prisma": {
