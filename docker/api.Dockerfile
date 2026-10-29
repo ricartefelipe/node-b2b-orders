@@ -7,15 +7,28 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY . .
-# Prisma generate: retry on network/DNS failure (EAI_AGAIN), sleep 30s between attempts
-RUN for i in 1 2 3 4 5; do (npx prisma generate && break) || sleep 30; done
-RUN for i in 1 2 3; do npm run build && break || sleep 15; done
+# Prisma generate: retry on network/DNS failure (EAI_AGAIN), sleep 30s between attempts.
+# Esgotadas as tentativas o build falha: um retry não transforma erro em sucesso.
+RUN for i in 1 2 3 4 5; do \
+        npx prisma generate && break; \
+        if [ "$i" = 5 ]; then echo "prisma generate falhou em $i tentativas" >&2; exit 1; fi; \
+        sleep 30; \
+    done
+RUN for i in 1 2 3; do \
+        npm run build && break; \
+        if [ "$i" = 3 ]; then echo "npm run build falhou em $i tentativas" >&2; exit 1; fi; \
+        sleep 15; \
+    done
 
 # ---
 FROM node:20-alpine AS runtime
 
-# Resiliente a falhas de DNS/rede durante o build
-RUN for i in 1 2 3; do apk update && apk add --no-cache curl openssl && break || sleep 10; done
+# Resiliente a falhas de DNS/rede durante o build; esgotadas as tentativas, falha.
+RUN for i in 1 2 3; do \
+        apk update && apk add --no-cache curl openssl && break; \
+        if [ "$i" = 3 ]; then echo "apk add falhou em $i tentativas" >&2; exit 1; fi; \
+        sleep 10; \
+    done
 
 WORKDIR /app
 

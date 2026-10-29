@@ -12,6 +12,8 @@
 
 API B2B de **Pedidos** e **Inventário** com NestJS, Fastify, Prisma, PostgreSQL, Redis e RabbitMQ. Implementa **Outbox Pattern**, **worker assíncrono**, **idempotência**, **RBAC/ABAC**, **rate limiting**, **multi-tenancy** e **observabilidade** (Prometheus/Grafana). Integra com **spring-saas-core** (JWT) e **py-payments-ledger** (eventos de pagamento).
 
+**Autor:** [Felipe Ricarte Magalhães](https://github.com/ricartefelipe) · [Site](https://codigodeproducao.com.br/) · [LinkedIn](https://www.linkedin.com/in/felipe-ricarte-magalhaes/)
+
 ---
 
 ## Índice

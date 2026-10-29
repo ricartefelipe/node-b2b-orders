@@ -23,8 +23,15 @@ done
 if [ "$NODE_ENV" = "staging" ]; then
   echo "[entrypoint] Staging: running seed..."
   for i in 1 2 3; do
-    npx prisma db seed && break || true
-    echo "[entrypoint] Seed attempt $i completed (or failed). Retrying in 15s..."
+    if npx prisma db seed; then
+      echo "[entrypoint] Seed applied."
+      break
+    fi
+    if [ "$i" -eq 3 ]; then
+      echo "[entrypoint] Seed failed after $i attempts." >&2
+      exit 1
+    fi
+    echo "[entrypoint] Seed attempt $i failed. Retrying in 15s..."
     sleep 15
   done
 fi

@@ -1,0 +1,29 @@
+name: Check master sync
+
+# Após push em develop, relata se master ficou atrás (sem promover).
+#
+# Antes este workflow avançava master com `git reset --hard origin/develop` e
+# `git push --force-with-lease`, o que descartava qualquer commit exclusivo de master. A verificação
+# é somente leitura: não promove, não mescla, não cria branch e não escreve no remoto.
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: check-master-sync
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare master with develop
+        run: ./scripts/check-branch-sync.sh origin develop master
