@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-10-29
+
+### Fixed
+- Conflito de peers resolvido na origem: `@nestjs/platform-fastify` ≥ 11.2.8 (aceita `@fastify/static ^10.1.2`); `.npmrc` sem `legacy-peer-deps`.
+- `npm audit --audit-level=high` de 19 HIGH para 0: overrides de `fastify`, `fast-uri`, `@grpc/grpc-js`, `js-yaml` e `brace-expansion` em versões sem advisory.
+- Retries dos Dockerfiles e do seed do entrypoint falham ao esgotar as tentativas em vez de terminar com sucesso.
+
+### Changed
+- Workflow `sync-master-with-develop` (reset + force-push em `master`) substituído por `check-master-sync`, uma comparação somente leitura.
+
 ## [1.0.0] - 2026-03-07
 
 ### Added
