@@ -43,6 +43,10 @@ COPY docker/entrypoint.sh /app/entrypoint.sh
 COPY --from=build /app/scripts/prisma-baseline-resolve.sh /app/scripts/prisma-baseline-resolve.sh
 
 RUN chown -R app:app /app/node_modules /app/prisma /app/scripts
+
+# O npm empacotado na imagem base nao e usado em execucao (o CLI do Prisma e chamado por
+# node_modules/.bin) e carrega dependencias com CVEs; sai da imagem final.
+RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn*
 RUN chmod +x /app/entrypoint.sh /app/scripts/prisma-baseline-resolve.sh
 
 USER app

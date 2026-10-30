@@ -3,7 +3,7 @@ set -e
 
 echo "[entrypoint] Running migrations..."
 for i in 1 2 3; do
-  if out=$(npx prisma migrate deploy 2>&1); then
+  if out=$(./node_modules/.bin/prisma migrate deploy 2>&1); then
     echo "$out"
     break
   fi
@@ -23,7 +23,7 @@ done
 if [ "$NODE_ENV" = "staging" ]; then
   echo "[entrypoint] Staging: running seed..."
   for i in 1 2 3; do
-    if npx prisma db seed; then
+    if ./node_modules/.bin/prisma db seed; then
       echo "[entrypoint] Seed applied."
       break
     fi

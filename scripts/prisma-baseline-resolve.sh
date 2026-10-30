@@ -27,13 +27,13 @@ for m in \
   20260313000000_align_policy_with_shared_db
 do
   echo "[baseline] resolve --applied $m"
-  npx prisma migrate resolve --applied "$m"
+  ./node_modules/.bin/prisma migrate resolve --applied "$m"
 done
 
 echo "[baseline] migrate deploy (aplica o que ainda faltar)..."
-npx prisma migrate deploy
+./node_modules/.bin/prisma migrate deploy
 
 echo "[baseline] migrate status:"
-npx prisma migrate status
+./node_modules/.bin/prisma migrate status
 
 echo "[baseline] Concluído. Reinicie o serviço no Railway se quiser um arranque limpo."

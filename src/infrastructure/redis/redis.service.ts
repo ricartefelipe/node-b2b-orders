@@ -144,6 +144,11 @@ export class RedisService {
   async idemSet(key: string, value: unknown, ttlSeconds: number): Promise<void> {
     await this.client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
   }
+
+  /** Remove uma entrada de idempotência (simulação de expiração/perda do cache). */
+  async idemDelete(key: string): Promise<void> {
+    await this.client.del(key);
+  }
 }
 
 function base64UrlToBase64(input: string): string {
