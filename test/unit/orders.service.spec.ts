@@ -5,6 +5,7 @@ import { AuditService } from '../../src/shared/audit/audit.service';
 import { BusinessMetricsService } from '../../src/shared/metrics/business-metrics.service';
 import { EventsService } from '../../src/interfaces/events/events.service';
 import { OrdersService, createOrderFingerprint } from '../../src/interfaces/orders/orders.service';
+import { IdempotencyService } from '../../src/shared/idempotency/idempotency.service';
 
 const mockTx = {
   order: {
@@ -13,6 +14,7 @@ const mockTx = {
   },
   outboxEvent: { create: jest.fn() },
   inventoryItem: { update: jest.fn() },
+  idempotencyRecord: { create: jest.fn() },
 };
 
 const mockPrisma = {
@@ -25,6 +27,7 @@ const mockPrisma = {
   },
   product: { findMany: jest.fn() },
   outboxEvent: { create: jest.fn() },
+  idempotencyRecord: { findUnique: jest.fn() },
 };
 
 const mockRedis = {
@@ -53,7 +56,10 @@ describe('OrdersService', () => {
       mockAudit as unknown as AuditService,
       mockMetrics as unknown as BusinessMetricsService,
       mockEvents as unknown as EventsService,
+      new IdempotencyService(mockPrisma as unknown as PrismaService, mockRedis as unknown as RedisService),
     );
+    mockPrisma.idempotencyRecord.findUnique.mockResolvedValue(null);
+    mockTx.idempotencyRecord.create.mockResolvedValue({});
   });
 
   describe('createOrder', () => {
@@ -64,11 +70,10 @@ describe('OrdersService', () => {
     });
 
     it('should return cached response on idempotency hit', async () => {
+      const items = [{ sku: 'SKU-1', qty: 1, price: 10 }];
       const cached = { id: 'o1', status: 'CREATED' };
-      mockRedis.idemGet.mockResolvedValue(cached);
-      const result = await service.createOrder('t1', 'cid', 'key-1', 'CUST-1', [
-        { sku: 'SKU-1', qty: 1, price: 10 },
-      ]);
+      mockRedis.idemGet.mockResolvedValue({ fingerprint: createOrderFingerprint('CUST-1', items), response: cached });
+      const result = await service.createOrder('t1', 'cid', 'key-1', 'CUST-1', items);
       expect(result).toEqual(cached);
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
@@ -79,6 +84,19 @@ describe('OrdersService', () => {
       mockRedis.idemGet.mockResolvedValue({ fingerprint: createOrderFingerprint('CUST-1', items), response });
       const result = await service.createOrder('t1', 'cid', 'key-1', 'CUST-1', items);
       expect(result).toEqual(response);
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('checks a legacy cache entry (no fingerprint) against the persisted order', async () => {
+      mockRedis.idemGet.mockResolvedValue({ id: 'o-legacy', status: 'CREATED' });
+      mockPrisma.order.findFirst.mockResolvedValue({
+        id: 'o-legacy', status: 'CREATED', customerId: 'CUST-1', items: [{ sku: 'SKU-1', qty: 1, price: 10 }],
+      });
+      const same = await service.createOrder('t1', 'cid', 'key-l', 'CUST-1', [{ sku: 'SKU-1', qty: 1, price: 10 }]);
+      expect(same).toMatchObject({ id: 'o-legacy' });
+      await expect(
+        service.createOrder('t1', 'cid', 'key-l', 'CUST-1', [{ sku: 'SKU-1', qty: 5, price: 10 }]),
+      ).rejects.toThrow(ConflictException);
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 

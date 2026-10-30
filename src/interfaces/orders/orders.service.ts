@@ -3,6 +3,8 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
+import { IDEMPOTENCY_SCOPE, IdempotentEntry, fingerprintOf, isIdempotencyRecordConflict } from '../../shared/idempotency/idempotency';
+import { IdempotencyService } from '../../shared/idempotency/idempotency.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { BusinessMetricsService } from '../../shared/metrics/business-metrics.service';
 import { EventsService } from '../events/events.service';
@@ -16,11 +18,9 @@ import { resolveOrderSort } from '../../shared/sorting/sort-query.dto';
 
 type CreateOrderItemInput = { sku: string; qty: number; price: number };
 
-/** O que fica guardado por Idempotency-Key: a resposta e a impressão digital do payload que a gerou. */
-type IdempotentCreateOrder = {
-  fingerprint?: string;
-  response: { id: string; status: string; customerId: string; items: unknown[] };
-};
+type CreateOrderResponse = { id: string; status: string; customerId: string; items: unknown[] };
+
+const CREATE_ORDER_FINGERPRINT_VERSION = 'v1';
 
 /**
  * Impressão digital canônica do pedido: cliente e itens ordenados por sku/qty/price.
@@ -30,7 +30,7 @@ export function createOrderFingerprint(customerId: string, items: CreateOrderIte
   const lines = items
     .map((i) => `${i.sku}\t${i.qty}\t${Number(i.price).toFixed(2)}`)
     .sort();
-  return createHash('sha256').update(`v1\n${customerId}\n${lines.join('\n')}`).digest('hex');
+  return fingerprintOf(CREATE_ORDER_FINGERPRINT_VERSION, [customerId, ...lines]);
 }
 
 @Injectable()
@@ -41,6 +41,7 @@ export class OrdersService {
     private readonly audit: AuditService,
     private readonly metrics: BusinessMetricsService,
     private readonly events: EventsService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   async createOrder(
@@ -52,43 +53,53 @@ export class OrdersService {
     actorSub?: string,
   ) {
     if (!idempotencyKey) throw new BadRequestException('Missing Idempotency-Key');
-    const idemKey = `idem:${tenantId}:create-order:${idempotencyKey}`;
+    const scope = IDEMPOTENCY_SCOPE.createOrder;
     const fingerprint = createOrderFingerprint(customerId, items);
-    const hit = (await this.redis.idemGet(idemKey)) as IdempotentCreateOrder | null;
-    if (hit) {
-      // A mesma chave só pode repetir o mesmo pedido: outro conteúdo é conflito, nunca o pedido antigo.
-      if (hit.fingerprint && hit.fingerprint !== fingerprint) {
-        throw new ConflictException('Idempotency-Key already used with a different payload');
-      }
-      return hit.response ?? hit;
-    }
+    const prior = await this.idempotency.find(tenantId, scope, idempotencyKey, (cached) =>
+      this.recoverLegacyCreateOrder(tenantId, cached),
+    );
+    if (prior) return this.idempotency.replay<CreateOrderResponse>(prior, fingerprint);
 
     if (!items.length) throw new BadRequestException('items required');
 
-    const order = await this.prisma.$transaction(async (tx) => {
-      const o = await tx.order.create({
-        data: {
-          tenantId,
-          customerId,
-          status: 'CREATED',
-          items: { create: items.map((i) => ({ sku: i.sku, qty: i.qty, price: i.price })) },
-        },
-        include: { items: true },
+    let entry: IdempotentEntry<CreateOrderResponse>;
+    try {
+      entry = await this.prisma.$transaction(async (tx) => {
+        const o = await tx.order.create({
+          data: {
+            tenantId,
+            customerId,
+            status: 'CREATED',
+            items: { create: items.map((i) => ({ sku: i.sku, qty: i.qty, price: i.price })) },
+          },
+          include: { items: true },
+        });
+
+        await tx.outboxEvent.create({
+          data: {
+            tenantId,
+            eventType: 'order.created',
+            aggregateType: 'Order',
+            aggregateId: o.id,
+            payload: { orderId: o.id, tenantId, correlationId },
+          },
+        });
+
+        const response: CreateOrderResponse = { id: o.id, status: o.status, customerId: o.customerId, items: o.items };
+        const created = { fingerprint, response };
+        // Mesma transação do efeito: sem registro não há pedido, sem pedido não há registro.
+        await this.idempotency.record(tx, tenantId, scope, idempotencyKey, created);
+        return created;
       });
+    } catch (error) {
+      // Corrida com a mesma chave: quem venceu já gravou o registro; repetimos ou conflitamos por ele.
+      if (!isIdempotencyRecordConflict(error)) throw error;
+      const winner = await this.idempotency.findDurable(tenantId, scope, idempotencyKey);
+      if (!winner) throw error;
+      return this.idempotency.replay<CreateOrderResponse>(winner, fingerprint);
+    }
 
-      await tx.outboxEvent.create({
-        data: {
-          tenantId,
-          eventType: 'order.created',
-          aggregateType: 'Order',
-          aggregateId: o.id,
-          payload: { orderId: o.id, tenantId, correlationId },
-        },
-      });
-
-      return o;
-    });
-
+    const order = entry.response;
     this.metrics.ordersCreated.inc({ tenant_id: tenantId });
 
     await this.audit.log({
@@ -100,14 +111,7 @@ export class OrdersService {
       correlationId,
     });
 
-    const response = {
-      id: order.id,
-      status: order.status,
-      customerId: order.customerId,
-      items: order.items,
-    };
-    const stored: IdempotentCreateOrder = { fingerprint, response };
-    await this.redis.idemSet(idemKey, stored, 24 * 3600);
+    await this.idempotency.cache(tenantId, scope, idempotencyKey, entry);
 
     this.events.broadcast(tenantId, 'order.updated', {
       orderId: order.id,
@@ -116,7 +120,25 @@ export class OrdersService {
       customerId: order.customerId,
     });
 
-    return response;
+    return order;
+  }
+
+  /**
+   * Entradas do Redis anteriores ao registro durável não trazem impressão digital: ela é
+   * recalculada a partir do pedido persistido (o conteúdo real), nunca inventada.
+   */
+  private async recoverLegacyCreateOrder(tenantId: string, cached: unknown): Promise<IdempotentEntry | null> {
+    const legacy = cached as { response?: { id?: string }; id?: string } | null;
+    const orderId = legacy?.response?.id ?? legacy?.id;
+    if (!orderId) return null;
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, tenantId }, include: { items: true } });
+    if (!order) return null;
+    const fingerprint = createOrderFingerprint(
+      order.customerId,
+      order.items.map((i) => ({ sku: i.sku, qty: i.qty, price: Number(i.price) })),
+    );
+    const response: CreateOrderResponse = { id: order.id, status: order.status, customerId: order.customerId, items: order.items };
+    return { fingerprint, response };
   }
 
   async confirmOrder(

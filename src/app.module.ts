@@ -8,6 +8,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
 import { CircuitBreakerModule } from './infrastructure/circuit-breaker/circuit-breaker.module';
 import { BusinessMetricsModule } from './shared/metrics/business-metrics.module';
 import { AuditModule } from './shared/audit/audit.module';
+import { IdempotencyModule } from './shared/idempotency/idempotency.module';
 import { AuthModule } from './interfaces/auth/auth.module';
 import { OrdersModule } from './interfaces/orders/orders.module';
 import { ProductsModule } from './interfaces/products/products.module';
@@ -37,6 +38,7 @@ import { TenantsProxyModule } from './interfaces/tenants-proxy/tenants-proxy.mod
     CircuitBreakerModule,
     BusinessMetricsModule,
     AuditModule,
+    IdempotencyModule,
     AuditHttpModule,
     AuthModule,
     OrdersModule,

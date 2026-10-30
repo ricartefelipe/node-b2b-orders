@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-10-30
+
+### Fixed
+- Idempotência durável: registro (tenant, operação, chave, impressão digital, resposta) gravado na mesma transação do efeito para criação de pedido e ajuste de inventário; repetição devolve a mesma resposta, corpo diferente responde `409`, perda do Redis não permite efeito duplicado, concorrência aplica o efeito uma única vez; entradas legadas conferidas contra o efeito persistido.
+- Movimentos de estoque atômicos no banco (`increment`/`decrement` condicional): ajustes concorrentes não perdem atualização e o débito acima do saldo é recusado sob concorrência.
+
+### Changed
+- Publicação das imagens no GHCR só após os gates do mesmo SHA (build, e2e, security e scan da imagem), em push para develop/master, com tag pelo SHA completo; `build-push.yml` removido.
+
 ## [1.4.1] - 2026-10-30
 
 ### Fixed
