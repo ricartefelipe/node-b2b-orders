@@ -144,14 +144,15 @@ export class InventoryService {
     if (!existing && type === AdjustmentType.OUT) {
       throw new NotFoundException(`SKU ${sku} not found for tenant`);
     }
-    // Criação tolerante à corrida: duas requisições simultâneas para um SKU novo não disputam o INSERT.
-    const inv =
-      existing ??
-      (await tx.inventoryItem.upsert({
-        where: { tenantId_sku: { tenantId, sku } },
-        create: { tenantId, sku, availableQty: 0, reservedQty: 0 },
-        update: {},
-      }));
+    // Criação tolerante à corrida: INSERT ... ON CONFLICT DO NOTHING (createMany com skipDuplicates é
+    // nativo no Postgres); duas requisições simultâneas para um SKU novo não disputam o INSERT.
+    if (!existing) {
+      await tx.inventoryItem.createMany({
+        data: [{ tenantId, sku, availableQty: 0, reservedQty: 0 }],
+        skipDuplicates: true,
+      });
+    }
+    const inv = existing ?? (await tx.inventoryItem.findUniqueOrThrow({ where: { tenantId_sku: { tenantId, sku } } }));
 
     // Movimentos relativos são aplicados pelo banco (increment/decrement), nunca por leitura + escrita:
     // ajustes concorrentes com chaves diferentes não perdem atualização.

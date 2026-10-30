@@ -12,7 +12,8 @@ const mockTx = {
   inventoryItem: {
     findUnique: jest.fn(),
     create: jest.fn(),
-    upsert: jest.fn(),
+    createMany: jest.fn(),
+    findUniqueOrThrow: jest.fn(),
     update: jest.fn(),
     updateMany: jest.fn(),
   },
@@ -96,7 +97,8 @@ describe('InventoryService', () => {
     it('should create inventory item on first IN adjustment for new SKU', async () => {
       mockRedis.idemGet.mockResolvedValue(null);
       mockTx.inventoryItem.findUnique.mockResolvedValue(null);
-      mockTx.inventoryItem.upsert.mockResolvedValue({
+      mockTx.inventoryItem.createMany.mockResolvedValue({ count: 1 });
+      mockTx.inventoryItem.findUniqueOrThrow.mockResolvedValue({
         tenantId: 't1', sku: 'NEW-SKU', availableQty: 0, reservedQty: 0,
       });
       mockTx.inventoryItem.update.mockResolvedValue({});
@@ -108,7 +110,9 @@ describe('InventoryService', () => {
       );
 
       expect(result).toEqual(adjustment);
-      expect(mockTx.inventoryItem.upsert).toHaveBeenCalled();
+      expect(mockTx.inventoryItem.createMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skipDuplicates: true }),
+      );
       expect(mockTx.inventoryItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: { availableQty: { increment: 50 } },
