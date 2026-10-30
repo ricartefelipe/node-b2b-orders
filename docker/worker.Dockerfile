@@ -36,6 +36,10 @@ COPY --from=build /app/package.json ./
 
 RUN chown -R app:app /app/node_modules /app/prisma
 
+# O npm empacotado na imagem base nao e usado em execucao (o CLI do Prisma e chamado por
+# node_modules/.bin) e carrega dependencias com CVEs; sai da imagem final.
+RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn*
+
 USER app
 
 # start-period: RabbitMQ pode demorar (retries com backoff) — o processo escreve heartbeat desde o início.
