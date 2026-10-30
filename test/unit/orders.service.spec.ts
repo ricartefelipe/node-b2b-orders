@@ -4,7 +4,7 @@ import { RedisService } from '../../src/infrastructure/redis/redis.service';
 import { AuditService } from '../../src/shared/audit/audit.service';
 import { BusinessMetricsService } from '../../src/shared/metrics/business-metrics.service';
 import { EventsService } from '../../src/interfaces/events/events.service';
-import { OrdersService } from '../../src/interfaces/orders/orders.service';
+import { OrdersService, createOrderFingerprint } from '../../src/interfaces/orders/orders.service';
 
 const mockTx = {
   order: {
@@ -71,6 +71,36 @@ describe('OrdersService', () => {
       ]);
       expect(result).toEqual(cached);
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should return the stored response when the same key repeats the same payload', async () => {
+      const items = [{ sku: 'SKU-1', qty: 1, price: 10 }];
+      const response = { id: 'o1', status: 'CREATED', customerId: 'CUST-1', items: [] };
+      mockRedis.idemGet.mockResolvedValue({ fingerprint: createOrderFingerprint('CUST-1', items), response });
+      const result = await service.createOrder('t1', 'cid', 'key-1', 'CUST-1', items);
+      expect(result).toEqual(response);
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when the same key arrives with a different payload', async () => {
+      const response = { id: 'o1', status: 'CREATED', customerId: 'CUST-1', items: [] };
+      mockRedis.idemGet.mockResolvedValue({
+        fingerprint: createOrderFingerprint('CUST-1', [{ sku: 'SKU-1', qty: 1, price: 10 }]),
+        response,
+      });
+      await expect(
+        service.createOrder('t1', 'cid', 'key-1', 'CUST-1', [{ sku: 'SKU-1', qty: 9, price: 10 }]),
+      ).rejects.toThrow(ConflictException);
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('fingerprint ignores item order and price scale but not content', () => {
+      const a = createOrderFingerprint('C', [{ sku: 'A', qty: 1, price: 10 }, { sku: 'B', qty: 2, price: 5 }]);
+      const b = createOrderFingerprint('C', [{ sku: 'B', qty: 2, price: 5.0 }, { sku: 'A', qty: 1, price: 10 }]);
+      const c = createOrderFingerprint('C', [{ sku: 'A', qty: 2, price: 10 }, { sku: 'B', qty: 2, price: 5 }]);
+      expect(a).toEqual(b);
+      expect(a).not.toEqual(c);
+      expect(createOrderFingerprint('D', [{ sku: 'A', qty: 1, price: 10 }, { sku: 'B', qty: 2, price: 5 }])).not.toEqual(a);
     });
 
     it('should throw BadRequestException when items is empty', async () => {
@@ -176,7 +206,10 @@ describe('OrdersService', () => {
 
       expect(mockRedis.idemSet).toHaveBeenCalledWith(
         'idem:t1:create-order:key-c',
-        expect.objectContaining({ id: 'o4', status: 'CREATED' }),
+        expect.objectContaining({
+          fingerprint: expect.any(String),
+          response: expect.objectContaining({ id: 'o4', status: 'CREATED' }),
+        }),
         24 * 3600,
       );
     });
