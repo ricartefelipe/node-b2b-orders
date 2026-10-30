@@ -55,6 +55,24 @@ describe('Orders (e2e)', () => {
     expect(res.body.id).toBe(createdOrderId);
   });
 
+  it('POST /v1/orders — 409 when the same Idempotency-Key carries a different payload', async () => {
+    const key = uuid();
+    const first = await request(ctx.url)
+      .post('/v1/orders')
+      .set(authHeaders(ctx, { 'Idempotency-Key': key }))
+      .send({ customerId: 'CUST-IDEM', items: [{ sku: 'SKU-1', qty: 1, price: 10 }] });
+    expect(first.status).toBe(201);
+    const changed = await request(ctx.url)
+      .post('/v1/orders')
+      .set(authHeaders(ctx, { 'Idempotency-Key': key }))
+      .send({ customerId: 'CUST-IDEM', items: [{ sku: 'SKU-1', qty: 7, price: 10 }] });
+    expect(changed.status).toBe(409);
+    const same = await request(ctx.url)
+      .get(`/v1/orders/${first.body.id}`)
+      .set(authHeaders(ctx));
+    expect(same.body.items[0].qty).toBe(1);
+  });
+
   it('GET /v1/orders/:id — 200', async () => {
     const res = await request(ctx.url)
       .get(`/v1/orders/${createdOrderId}`)

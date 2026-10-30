@@ -1,10 +1,5 @@
 import { createHash } from 'crypto';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
@@ -18,6 +13,25 @@ import {
   resolveLimit,
 } from '../../shared/pagination/cursor';
 import { resolveOrderSort } from '../../shared/sorting/sort-query.dto';
+
+type CreateOrderItemInput = { sku: string; qty: number; price: number };
+
+/** O que fica guardado por Idempotency-Key: a resposta e a impressão digital do payload que a gerou. */
+type IdempotentCreateOrder = {
+  fingerprint?: string;
+  response: { id: string; status: string; customerId: string; items: unknown[] };
+};
+
+/**
+ * Impressão digital canônica do pedido: cliente e itens ordenados por sku/qty/price.
+ * A ordem dos itens no JSON não muda o pedido; conteúdo diferente muda.
+ */
+export function createOrderFingerprint(customerId: string, items: CreateOrderItemInput[]): string {
+  const lines = items
+    .map((i) => `${i.sku}\t${i.qty}\t${Number(i.price).toFixed(2)}`)
+    .sort();
+  return createHash('sha256').update(`v1\n${customerId}\n${lines.join('\n')}`).digest('hex');
+}
 
 @Injectable()
 export class OrdersService {
@@ -39,8 +53,15 @@ export class OrdersService {
   ) {
     if (!idempotencyKey) throw new BadRequestException('Missing Idempotency-Key');
     const idemKey = `idem:${tenantId}:create-order:${idempotencyKey}`;
-    const hit = await this.redis.idemGet(idemKey);
-    if (hit) return hit;
+    const fingerprint = createOrderFingerprint(customerId, items);
+    const hit = (await this.redis.idemGet(idemKey)) as IdempotentCreateOrder | null;
+    if (hit) {
+      // A mesma chave só pode repetir o mesmo pedido: outro conteúdo é conflito, nunca o pedido antigo.
+      if (hit.fingerprint && hit.fingerprint !== fingerprint) {
+        throw new ConflictException('Idempotency-Key already used with a different payload');
+      }
+      return hit.response ?? hit;
+    }
 
     if (!items.length) throw new BadRequestException('items required');
 
@@ -85,7 +106,8 @@ export class OrdersService {
       customerId: order.customerId,
       items: order.items,
     };
-    await this.redis.idemSet(idemKey, response, 24 * 3600);
+    const stored: IdempotentCreateOrder = { fingerprint, response };
+    await this.redis.idemSet(idemKey, stored, 24 * 3600);
 
     this.events.broadcast(tenantId, 'order.updated', {
       orderId: order.id,
