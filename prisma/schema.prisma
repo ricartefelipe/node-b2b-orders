@@ -236,3 +236,18 @@ model WebhookDelivery {
   @@index([status])
   @@map("webhook_deliveries")
 }
+
+/// Registro durável de idempotência por tenant, escopo (operação) e chave do cliente.
+/// Escrito na mesma transação do efeito; o Redis guarda apenas uma cópia para leitura rápida.
+model IdempotencyRecord {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id") @db.Uuid
+  scope       String
+  key         String
+  fingerprint String
+  response    Json
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([tenantId, scope, key])
+  @@map("idempotency_records")
+}

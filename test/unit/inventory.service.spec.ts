@@ -4,21 +4,27 @@ import { RedisService } from '../../src/infrastructure/redis/redis.service';
 import { AuditService } from '../../src/shared/audit/audit.service';
 import { BusinessMetricsService } from '../../src/shared/metrics/business-metrics.service';
 import { InventoryService } from '../../src/interfaces/inventory/inventory.service';
+import { IdempotencyService } from '../../src/shared/idempotency/idempotency.service';
 import { AdjustmentType } from '../../src/interfaces/inventory/dto';
+import { adjustmentFingerprint } from '../../src/interfaces/inventory/inventory.service';
 
 const mockTx = {
   inventoryItem: {
     findUnique: jest.fn(),
     create: jest.fn(),
+    upsert: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   },
-  inventoryAdjustment: { create: jest.fn() },
+  inventoryAdjustment: { create: jest.fn(), count: jest.fn() },
+  idempotencyRecord: { create: jest.fn() },
 };
 
 const mockPrisma = {
   $transaction: jest.fn((cb: (tx: typeof mockTx) => Promise<any>) => cb(mockTx)),
   inventoryItem: { findMany: jest.fn() },
-  inventoryAdjustment: { findMany: jest.fn() },
+  inventoryAdjustment: { findMany: jest.fn(), findFirst: jest.fn() },
+  idempotencyRecord: { findUnique: jest.fn() },
 };
 
 const mockRedis = {
@@ -38,10 +44,13 @@ describe('InventoryService', () => {
     jest.clearAllMocks();
     service = new InventoryService(
       mockPrisma as unknown as PrismaService,
-      mockRedis as unknown as RedisService,
       mockAudit as unknown as AuditService,
       mockMetrics as unknown as BusinessMetricsService,
+      new IdempotencyService(mockPrisma as unknown as PrismaService, mockRedis as unknown as RedisService),
     );
+    mockPrisma.idempotencyRecord.findUnique.mockResolvedValue(null);
+    mockPrisma.inventoryAdjustment.findFirst.mockResolvedValue(null);
+    mockTx.idempotencyRecord.create.mockResolvedValue({});
   });
 
   describe('list', () => {
@@ -74,7 +83,7 @@ describe('InventoryService', () => {
   describe('createAdjustment', () => {
     it('should return cached response on idempotency hit', async () => {
       const cached = { id: 'adj-1', sku: 'SKU-1', type: 'IN', qty: 10 };
-      mockRedis.idemGet.mockResolvedValue(cached);
+      mockRedis.idemGet.mockResolvedValue({ fingerprint: adjustmentFingerprint('SKU-1', AdjustmentType.IN, 10, 'restock'), response: cached });
 
       const result = await service.createAdjustment(
         't1', 'cid', 'actor@e2e', 'key-1', 'SKU-1', AdjustmentType.IN, 10, 'restock',
@@ -87,7 +96,7 @@ describe('InventoryService', () => {
     it('should create inventory item on first IN adjustment for new SKU', async () => {
       mockRedis.idemGet.mockResolvedValue(null);
       mockTx.inventoryItem.findUnique.mockResolvedValue(null);
-      mockTx.inventoryItem.create.mockResolvedValue({
+      mockTx.inventoryItem.upsert.mockResolvedValue({
         tenantId: 't1', sku: 'NEW-SKU', availableQty: 0, reservedQty: 0,
       });
       mockTx.inventoryItem.update.mockResolvedValue({});
@@ -99,10 +108,10 @@ describe('InventoryService', () => {
       );
 
       expect(result).toEqual(adjustment);
-      expect(mockTx.inventoryItem.create).toHaveBeenCalled();
+      expect(mockTx.inventoryItem.upsert).toHaveBeenCalled();
       expect(mockTx.inventoryItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { availableQty: 50 },
+          data: { availableQty: { increment: 50 } },
         }),
       );
     });
@@ -121,7 +130,7 @@ describe('InventoryService', () => {
 
       expect(mockTx.inventoryItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { availableQty: 125 },
+          data: { availableQty: { increment: 25 } },
         }),
       );
     });
@@ -131,18 +140,18 @@ describe('InventoryService', () => {
       mockTx.inventoryItem.findUnique.mockResolvedValue({
         tenantId: 't1', sku: 'SKU-1', availableQty: 100, reservedQty: 0,
       });
-      mockTx.inventoryItem.update.mockResolvedValue({});
+      mockTx.inventoryItem.updateMany.mockResolvedValue({ count: 1 });
       mockTx.inventoryAdjustment.create.mockResolvedValue({ id: 'adj-out' });
 
       await service.createAdjustment(
         't1', 'cid', 'actor@e2e', 'key-out', 'SKU-1', AdjustmentType.OUT, 30, 'sold',
       );
 
-      expect(mockTx.inventoryItem.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { availableQty: 70 },
-        }),
-      );
+      // O débito é condicional e atômico no banco: só debita se ainda houver saldo.
+      expect(mockTx.inventoryItem.updateMany).toHaveBeenCalledWith({
+        where: { tenantId: 't1', sku: 'SKU-1', availableQty: { gte: 30 } },
+        data: { availableQty: { decrement: 30 } },
+      });
     });
 
     it('should throw ConflictException when OUT qty exceeds available', async () => {
@@ -150,12 +159,14 @@ describe('InventoryService', () => {
       mockTx.inventoryItem.findUnique.mockResolvedValue({
         tenantId: 't1', sku: 'SKU-1', availableQty: 5, reservedQty: 0,
       });
+      mockTx.inventoryItem.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
         service.createAdjustment(
           't1', 'cid', 'actor@e2e', 'key-over', 'SKU-1', AdjustmentType.OUT, 10, 'oversell',
         ),
       ).rejects.toThrow(ConflictException);
+      expect(mockTx.inventoryAdjustment.create).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException on OUT for nonexistent SKU', async () => {
@@ -240,9 +251,12 @@ describe('InventoryService', () => {
         't1', 'cid', 'actor@e2e', 'idem-key-1', 'SKU-1', AdjustmentType.IN, 10, 'restock',
       );
 
+      expect(mockTx.idempotencyRecord.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ tenantId: 't1', scope: 'inventory-adjustment', key: 'idem-key-1' }) }),
+      );
       expect(mockRedis.idemSet).toHaveBeenCalledWith(
-        'idem:t1:inv-adj:idem-key-1',
-        expect.objectContaining({ id: 'adj-cache' }),
+        'idem:t1:inventory-adjustment:idem-key-1',
+        expect.objectContaining({ response: expect.objectContaining({ id: 'adj-cache' }) }),
         24 * 3600,
       );
     });
@@ -252,7 +266,7 @@ describe('InventoryService', () => {
       mockTx.inventoryItem.findUnique.mockResolvedValue({
         tenantId: 't1', sku: 'SKU-1', availableQty: 100, reservedQty: 0,
       });
-      mockTx.inventoryItem.update.mockResolvedValue({});
+      mockTx.inventoryItem.updateMany.mockResolvedValue({ count: 1 });
       mockTx.inventoryAdjustment.create.mockResolvedValue({ id: 'adj-met' });
 
       await service.createAdjustment(

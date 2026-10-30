@@ -68,7 +68,7 @@ O **node-b2b-orders** expõe uma API REST para criação e gestão de **pedidos*
 ## Quando usar
 
 - Você precisa de uma **API de pedidos e inventário** para uma suíte B2B (ex.: fluxe-b2b-suite).
-- Quer **idempotência** em criação de pedidos e confirmação (header `Idempotency-Key`).
+- Quer **idempotência durável** em criação de pedidos e ajustes de inventário (header `Idempotency-Key`): o registro da chave é gravado na mesma transação do efeito, com impressão digital do corpo; repetição devolve a mesma resposta, corpo diferente responde `409`, e a perda do Redis não permite efeito duplicado.
 - Deseja **eventos assíncronos** (RabbitMQ) para integrar com pagamentos ou outros serviços.
 - O frontend ou o core (spring-saas-core) já emitem JWT; esta API apenas **valida** e aplica ABAC.
 
