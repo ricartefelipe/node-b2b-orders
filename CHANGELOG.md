@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-10-30
+
+### Fixed
+- Idempotência de criação de pedido passa a comparar a impressão digital do corpo (cliente e itens ordenados): a mesma `X-Idempotency-Key` com corpo diferente responde `409` em vez de devolver o pedido anterior; entradas antigas sem impressão digital continuam sendo respondidas.
+
 ## [1.4.0] - 2026-10-29
 
 ### Fixed
