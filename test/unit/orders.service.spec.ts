@@ -70,6 +70,18 @@ describe('OrdersService', () => {
   });
 
   describe('createOrder', () => {
+    it('grava o total do pedido na criação', async () => {
+      mockRedis.idemGet.mockResolvedValue(null);
+      mockTx.order.create.mockResolvedValue({ id: 'o1', status: 'CREATED', customerId: 'CUST-1', items: [] });
+      await service.createOrder('t1', 'cid', 'key-total', 'CUST-1', [
+        { sku: 'SKU-1', qty: 2, price: 10.5 },
+        { sku: 'SKU-2', qty: 1, price: 3 },
+      ]);
+      expect(mockTx.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ totalAmount: '24.00' }) }),
+      );
+    });
+
     it('should throw BadRequestException when Idempotency-Key is missing', async () => {
       await expect(
         service.createOrder('t1', 'cid', '', 'CUST-1', [{ sku: 'SKU-1', qty: 1, price: 10 }]),
