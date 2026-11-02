@@ -1489,10 +1489,10 @@ components:
         price:
           type: number
           minimum: 0
+          description: Preço visto pelo cliente. O preço do pedido vem do catálogo; se este for diferente, a API responde 409.
       required:
         - sku
         - qty
-        - price
     CreateOrderRequestDto:
       type: object
       properties:

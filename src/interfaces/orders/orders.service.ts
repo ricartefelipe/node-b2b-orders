@@ -1,5 +1,11 @@
 import { createHash } from 'crypto';
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
@@ -16,25 +22,27 @@ import {
 } from '../../shared/pagination/cursor';
 import { resolveOrderSort } from '../../shared/sorting/sort-query.dto';
 
-type CreateOrderItemInput = { sku: string; qty: number; price: number };
+type CreateOrderItemInput = { sku: string; qty: number; price?: number };
+type PricedOrderItem = { sku: string; qty: number; price: number };
 
 type CreateOrderResponse = { id: string; status: string; customerId: string; items: unknown[] };
 
 const CREATE_ORDER_FINGERPRINT_VERSION = 'v1';
 
-/**
- * Impressão digital canônica do pedido: cliente e itens ordenados por sku/qty/price.
- * A ordem dos itens no JSON não muda o pedido; conteúdo diferente muda.
- */
 /** Total em texto com duas casas: somar em centavos evita o erro de arredondamento binário. */
 export function orderTotal(items: { qty: number; price: number }[]): string {
   const cents = items.reduce((total, i) => total + Math.round(i.price * 100) * i.qty, 0);
   return (cents / 100).toFixed(2);
 }
 
+/**
+ * Impressão digital canônica do pedido: cliente e itens ordenados por sku/qty/price.
+ * A ordem dos itens no JSON não muda o pedido; conteúdo diferente muda. Item sem preço informado
+ * fica sem o terceiro valor; com preço, o texto é o mesmo das chaves já gravadas.
+ */
 export function createOrderFingerprint(customerId: string, items: CreateOrderItemInput[]): string {
   const lines = items
-    .map((i) => `${i.sku}\t${i.qty}\t${Number(i.price).toFixed(2)}`)
+    .map((i) => `${i.sku}\t${i.qty}\t${i.price === undefined ? '' : Number(i.price).toFixed(2)}`)
     .sort();
   return fingerprintOf(CREATE_ORDER_FINGERPRINT_VERSION, [customerId, ...lines]);
 }
@@ -50,12 +58,38 @@ export class OrdersService {
     private readonly idempotency: IdempotencyService,
   ) {}
 
+  /** O preço vem sempre do catálogo do locatário; o informado pelo cliente só serve para recusar divergência. */
+  private async priceFromCatalog(
+    tenantId: string,
+    items: CreateOrderItemInput[],
+  ): Promise<PricedOrderItem[]> {
+    const skus = [...new Set(items.map((i) => i.sku))];
+    const products = await this.prisma.product.findMany({
+      where: { tenantId, sku: { in: skus }, active: true },
+      select: { sku: true, price: true },
+    });
+    const prices = new Map(products.map((p) => [p.sku, Number(p.price)]));
+
+    const unavailable = skus.filter((sku) => !prices.has(sku));
+    if (unavailable.length) {
+      throw new UnprocessableEntityException(`SKU desconhecido ou inativo: ${unavailable.join(', ')}`);
+    }
+
+    return items.map((item) => {
+      const price = prices.get(item.sku) as number;
+      if (item.price !== undefined && Math.round(item.price * 100) !== Math.round(price * 100)) {
+        throw new ConflictException(`Preço de ${item.sku} mudou: o catálogo informa ${price.toFixed(2)}`);
+      }
+      return { sku: item.sku, qty: item.qty, price };
+    });
+  }
+
   async createOrder(
     tenantId: string,
     correlationId: string,
     idempotencyKey: string,
     customerId: string,
-    items: { sku: string; qty: number; price: number }[],
+    items: CreateOrderItemInput[],
     actorSub?: string,
   ) {
     if (!idempotencyKey) throw new BadRequestException('Missing Idempotency-Key');
@@ -67,6 +101,7 @@ export class OrdersService {
     if (prior) return this.idempotency.replay<CreateOrderResponse>(prior, fingerprint);
 
     if (!items.length) throw new BadRequestException('items required');
+    const priced = await this.priceFromCatalog(tenantId, items);
 
     let entry: IdempotentEntry<CreateOrderResponse>;
     try {
@@ -76,8 +111,8 @@ export class OrdersService {
             tenantId,
             customerId,
             status: 'CREATED',
-            totalAmount: orderTotal(items),
-            items: { create: items.map((i) => ({ sku: i.sku, qty: i.qty, price: i.price })) },
+            totalAmount: orderTotal(priced),
+            items: { create: priced.map((i) => ({ sku: i.sku, qty: i.qty, price: i.price })) },
           },
           include: { items: true },
         });

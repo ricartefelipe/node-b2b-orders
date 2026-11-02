@@ -169,7 +169,7 @@ describe('Idempotency (e2e)', () => {
     it('losing the Redis entry does not create a second order', async () => {
       const key = uuid();
       const customerId = `CUST-IDEM-${Date.now()}`;
-      const body = { customerId, items: [{ sku: 'SKU-1', qty: 1, price: 10 }] };
+      const body = { customerId, items: [{ sku: 'ELET-001', qty: 1 }] };
 
       const first = await createOrder(key, body);
       await redis.idemDelete(`idem:${ctx.tenantId}:create-order:${key}`);
@@ -184,7 +184,7 @@ describe('Idempotency (e2e)', () => {
     it('concurrent creations with the same key persist exactly one order', async () => {
       const key = uuid();
       const customerId = `CUST-CONC-${Date.now()}`;
-      const body = { customerId, items: [{ sku: 'SKU-1', qty: 2, price: 10 }] };
+      const body = { customerId, items: [{ sku: 'ELET-001', qty: 2 }] };
 
       const responses = await Promise.all(Array.from({ length: 6 }, () => createOrder(key, body)));
 
