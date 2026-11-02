@@ -4,7 +4,7 @@ import { RedisService } from '../../src/infrastructure/redis/redis.service';
 import { AuditService } from '../../src/shared/audit/audit.service';
 import { BusinessMetricsService } from '../../src/shared/metrics/business-metrics.service';
 import { EventsService } from '../../src/interfaces/events/events.service';
-import { OrdersService, createOrderFingerprint } from '../../src/interfaces/orders/orders.service';
+import { OrdersService, createOrderFingerprint, orderTotal } from '../../src/interfaces/orders/orders.service';
 import { IdempotencyService } from '../../src/shared/idempotency/idempotency.service';
 
 const mockTx = {
@@ -60,6 +60,13 @@ describe('OrdersService', () => {
     );
     mockPrisma.idempotencyRecord.findUnique.mockResolvedValue(null);
     mockTx.idempotencyRecord.create.mockResolvedValue({});
+  });
+
+  describe('orderTotal', () => {
+    it('soma preço vezes quantidade sem erro de arredondamento', () => {
+      expect(orderTotal([{ qty: 3, price: 129.9 }])).toBe('389.70');
+      expect(orderTotal([{ qty: 1, price: 0.1 }, { qty: 2, price: 0.2 }])).toBe('0.50');
+    });
   });
 
   describe('createOrder', () => {

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- O pedido passa a gravar `totalAmount` na criação. Sem o total, a loja enviava o pagamento sem valor e o checkout falhava na última etapa.
+- As imagens instalam OpenSSL antes de `npm ci`, para trazer o motor certo do Prisma e não baixá-lo na subida do container.
+
 ## [1.4.2] - 2026-10-30
 
 ### Fixed
