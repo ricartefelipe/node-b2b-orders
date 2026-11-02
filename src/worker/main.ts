@@ -563,7 +563,7 @@ async function main() {
   }
 
   // Antes: o heartbeat só era escrito após Redis + Rabbit + filas. O HEALTHCHECK do Docker
-  // (e o Railway) falhavam com start-period curto, matando o container enquanto o Rabbit
+  // (e a plataforma) falhavam com start-period curto, matando o container enquanto o Rabbit
   // ainda fazia retry. O ficheiro deve existir durante toda a fase de arranque.
   writeHeartbeat();
   heartbeatInterval = setInterval(writeHeartbeat, 10_000);
