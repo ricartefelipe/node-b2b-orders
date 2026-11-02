@@ -26,6 +26,12 @@ const CREATE_ORDER_FINGERPRINT_VERSION = 'v1';
  * Impressão digital canônica do pedido: cliente e itens ordenados por sku/qty/price.
  * A ordem dos itens no JSON não muda o pedido; conteúdo diferente muda.
  */
+/** Total em texto com duas casas: somar em centavos evita o erro de arredondamento binário. */
+export function orderTotal(items: { qty: number; price: number }[]): string {
+  const cents = items.reduce((total, i) => total + Math.round(i.price * 100) * i.qty, 0);
+  return (cents / 100).toFixed(2);
+}
+
 export function createOrderFingerprint(customerId: string, items: CreateOrderItemInput[]): string {
   const lines = items
     .map((i) => `${i.sku}\t${i.qty}\t${Number(i.price).toFixed(2)}`)
@@ -70,6 +76,7 @@ export class OrdersService {
             tenantId,
             customerId,
             status: 'CREATED',
+            totalAmount: orderTotal(items),
             items: { create: items.map((i) => ({ sku: i.sku, qty: i.qty, price: i.price })) },
           },
           include: { items: true },
