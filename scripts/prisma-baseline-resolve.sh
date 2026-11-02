@@ -5,8 +5,8 @@
 # Só usar se o schema existente corresponder ao resultado destas migrações (típico:
 # BD criado antes do histórico Prisma ou reposto sem _prisma_migrations).
 #
-# Staging Railway (serviço node-b2b-orders):
-#   railway ssh -s node-b2b-orders -- /app/scripts/prisma-baseline-resolve.sh
+# Dentro do container da API:
+#   /app/scripts/prisma-baseline-resolve.sh
 #
 # Local (com DATABASE_URL apontando ao mesmo Postgres):
 #   ./scripts/prisma-baseline-resolve.sh
@@ -36,4 +36,4 @@ echo "[baseline] migrate deploy (aplica o que ainda faltar)..."
 echo "[baseline] migrate status:"
 ./node_modules/.bin/prisma migrate status
 
-echo "[baseline] Concluído. Reinicie o serviço no Railway se quiser um arranque limpo."
+echo "[baseline] Concluído. Reinicie o serviço se quiser um arranque limpo."

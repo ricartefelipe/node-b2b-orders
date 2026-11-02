@@ -42,7 +42,7 @@ API B2B de **Pedidos** e **Inventário** com NestJS, Fastify, Prisma, PostgreSQL
 
 ## Branches e ambientes na nuvem
 
-| Branch Git | Deploy Railway | Função |
+| Branch Git | Ambiente | Função |
 |------------|----------------|--------|
 | **`develop`** | **Staging** | **Teste** — integração, QA, demos; **não** é produção com clientes reais. |
 | **`master`** | **Produção** | **Para valer** — dados e operações reais. |
@@ -377,16 +377,13 @@ O serviço usa **Fastify 5.8.4** na dependência direta (`package.json`). O paco
 
 **O que fazer no dia a dia:** `npm ci` ou `npm install` como habitualmente; não remover o override até o Nest estável passar a depender de Fastify ≥ 5.8.3. Para validar: `npm audit` (e no CI, `npm audit --audit-level=high`).
 
-**Staging / Railway:** com o serviço apontando à branch `develop`, cada merge em `develop` dispara novo build e deploy no Railway (ver [DEPLOY-RAILWAY](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/DEPLOY-RAILWAY.md) no repositório fluxe-b2b-suite).
-
 ---
 
 ## Troubleshooting
 
 | Problema | Solução |
 |----------|---------|
-| **P3005** / schema não vazio + migrações “não aplicadas” (Railway staging) | Baseline: [docs/RUNBOOK-PRISMA-BASELINE-STAGING.md](docs/RUNBOOK-PRISMA-BASELINE-STAGING.md) e `scripts/prisma-baseline-resolve.sh` (após deploy da imagem que inclui o script: `railway ssh -s node-b2b-orders -- /app/scripts/prisma-baseline-resolve.sh`). |
-| Railway/PostgreSQL partilhado: erro `OutboxEvent` / tabela em falta | Aplicar DDL com **um statement por vez** (limitação Prisma prepared statement); ver `scripts/railway-create-outbox-event-table.cjs` e `railway ssh` + `base64` como no comentário do script. |
+| **P3005** / schema não vazio + migrações “não aplicadas” (staging) | Baseline: [docs/RUNBOOK-PRISMA-BASELINE-STAGING.md](docs/RUNBOOK-PRISMA-BASELINE-STAGING.md) e `scripts/prisma-baseline-resolve.sh`. |
 | RabbitMQ "Connection refused" | `docker compose ps`; `./scripts/down.sh && ./scripts/up.sh` |
 | Banco fora de sync | `npx prisma generate`, `./scripts/migrate.sh`, `./scripts/seed.sh` |
 | Worker não processa | `./scripts/logs.sh`; RabbitMQ Admin → Queues → orders.dlq |
@@ -396,7 +393,7 @@ O serviço usa **Fastify 5.8.4** na dependência direta (`package.json`). O paco
 
 ## Staging — checklist de pedido (curl)
 
-Para repetir em **staging** (ex.: Railway) o fluxo mínimo **auth → POST /v1/orders → RESERVED → CONFIRMED**, use o checklist e o script na **fluxe-b2b-suite**: [`docs/CHECKLIST-PEDIDO-STAGING.md`](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/CHECKLIST-PEDIDO-STAGING.md) (`pnpm smoke:order-staging` com `ORDERS_SMOKE_URL`). Opcional até **PAID**: `pnpm smoke:order-staging:paid` (publica `payment.settled` com `RABBITMQ_URL`) ou `pnpm smoke:order-staging:saga` (saga ledger + workers; só poll HTTP). O smoke HTTP leve pós-deploy continua em `scripts/smoke-post-merge.sh`.
+Para repetir em **staging** o fluxo mínimo **auth → POST /v1/orders → RESERVED → CONFIRMED**, use o checklist e o script na **fluxe-b2b-suite**: [`docs/CHECKLIST-PEDIDO-STAGING.md`](https://github.com/ricartefelipe/fluxe-b2b-suite/blob/develop/docs/CHECKLIST-PEDIDO-STAGING.md) (`pnpm smoke:order-staging` com `ORDERS_SMOKE_URL`). Opcional até **PAID**: `pnpm smoke:order-staging:paid` (publica `payment.settled` com `RABBITMQ_URL`) ou `pnpm smoke:order-staging:saga` (saga ledger + workers; só poll HTTP). O smoke HTTP leve pós-deploy continua em `scripts/smoke-post-merge.sh`.
 
 ---
 
