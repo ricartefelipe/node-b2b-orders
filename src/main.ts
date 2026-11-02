@@ -47,7 +47,7 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   const corsOrigins = process.env.CORS_ORIGINS;
-  // Railway usa NODE_ENV=production no build; staging pode não ter CORS listado. Só exigir
+  // NODE_ENV=production também vale em build de staging, que pode não ter CORS listado. Só exigir
   // CORS com APP_ENV=production explícito (produção de verdade).
   const requireCorsInProd =
     process.env.NODE_ENV === 'production' &&

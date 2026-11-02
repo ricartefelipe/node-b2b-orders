@@ -1,4 +1,4 @@
-# Runbook — Baseline Prisma (staging / Railway)
+# Runbook — Baseline Prisma (staging)
 
 Use quando:
 
@@ -17,7 +17,7 @@ O PostgreSQL tem objetos no `public`, mas o Prisma não tem registo coerente em 
 
 ## Pré-requisitos
 
-- Railway CLI logado; repo `node-b2b-orders` ligado ao projecto e ambiente **staging** (`railway status`).
+- Acesso ao container da API do ambiente **staging**.
 - Confiança de que o **schema actual** corresponde ao que estas migrações criariam. Se duvidar, inspecione tabelas/colunas antes ou use BD de staging descartável e `migrate deploy` em BD vazio.
 - A imagem API (`docker/api.Dockerfile`) precisa de incluir `scripts/prisma-baseline-resolve.sh`: o `.dockerignore` **não** deve ignorar a pasta `scripts/` (caso contrário o `COPY` falha ou o build fica inconsistente).
 
@@ -26,17 +26,16 @@ O PostgreSQL tem objetos no `public`, mas o Prisma não tem registo coerente em 
 ## Opção A — Script na imagem (recomendado após deploy com este script incluído)
 
 ```bash
-cd node-b2b-orders
-railway ssh -s node-b2b-orders -- /app/scripts/prisma-baseline-resolve.sh
+docker compose exec orders-api /app/scripts/prisma-baseline-resolve.sh
 ```
 
-Depois: **Redeploy** opcional do serviço no painel (o processo já em execução não precisa, mas um deploy limpo confirma o próximo arranque).
+Depois: reinício opcional do serviço (o processo já em execução não precisa, mas um deploy limpo confirma o próximo arranque).
 
 ---
 
 ## Opção B — Comandos manuais (qualquer build com `npx` + `prisma/` em `/app`)
 
-Dentro do container (`railway ssh -s node-b2b-orders`), em `/app`:
+Dentro do container, em `/app`:
 
 ```sh
 npx prisma migrate resolve --applied "20260216024000_init"
