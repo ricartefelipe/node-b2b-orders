@@ -64,7 +64,7 @@ ORDER_JSON=$(curl -sS -X POST "$API_BASE/v1/orders" \
   -H "X-Tenant-Id: $TENANT" \
   -H "Idempotency-Key: smoke-$(date +%s)" \
   -H "Content-Type: application/json" \
-  -d '{"customerId":"CUST-1","items":[{"sku":"SKU-1","qty":2,"price":10.5}]}')
+  -d '{"customerId":"CUST-1","items":[{"sku":"ELET-001","qty":2}]}')
 ORDER_ID=$(json_get "$ORDER_JSON" "id")
 ORDER_STATUS=$(json_get "$ORDER_JSON" "status")
 assert_eq "$ORDER_STATUS" "CREATED" "order created"
@@ -167,7 +167,7 @@ SALES_CREATE_CODE=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "$API_BASE/v
   -H "X-Tenant-Id: $TENANT" \
   -H "Idempotency-Key: smoke-sales-write" \
   -H "Content-Type: application/json" \
-  -d '{"customerId":"CUST-X","items":[{"sku":"SKU-1","qty":1,"price":1}]}')
+  -d '{"customerId":"CUST-X","items":[{"sku":"ELET-001","qty":1}]}')
 assert_eq "$SALES_CREATE_CODE" "403" "sales cannot write orders"
 
 echo ""

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- O preço e o total do pedido passam a vir do catálogo do locatário. `price` no pedido ficou opcional: divergência responde 409 e SKU desconhecido ou inativo responde 422.
+
+### Fixed
+- Cinco imagens da carga inicial que respondiam 404.
+
 ## [1.4.4] - 2026-11-02
 
 ### Removed
