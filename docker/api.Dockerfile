@@ -4,6 +4,8 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
+# O Prisma escolhe o motor pela versão do OpenSSL: sem ele aqui, a imagem final baixaria outro motor na subida.
+RUN apk add --no-cache openssl
 RUN npm ci
 
 COPY . .
