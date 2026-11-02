@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaService } from '../../src/infrastructure/prisma/prisma.service';
 import { RedisService } from '../../src/infrastructure/redis/redis.service';
 import { AuditService } from '../../src/shared/audit/audit.service';
@@ -70,22 +70,69 @@ describe('OrdersService', () => {
   });
 
   describe('createOrder', () => {
-    it('grava o total do pedido na criação', async () => {
-      mockRedis.idemGet.mockResolvedValue(null);
-      mockTx.order.create.mockResolvedValue({ id: 'o1', status: 'CREATED', customerId: 'CUST-1', items: [] });
-      await service.createOrder('t1', 'cid', 'key-total', 'CUST-1', [
-        { sku: 'SKU-1', qty: 2, price: 10.5 },
-        { sku: 'SKU-2', qty: 1, price: 3 },
-      ]);
-      expect(mockTx.order.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ totalAmount: '24.00' }) }),
-      );
+    beforeEach(() => {
+      mockPrisma.product.findMany.mockResolvedValue([{ sku: 'SKU-1', price: '15.00' }]);
     });
 
-    it('should throw BadRequestException when Idempotency-Key is missing', async () => {
-      await expect(
-        service.createOrder('t1', 'cid', '', 'CUST-1', [{ sku: 'SKU-1', qty: 1, price: 10 }]),
-      ).rejects.toThrow(BadRequestException);
+    describe('preço do catálogo', () => {
+      beforeEach(() => {
+        mockRedis.idemGet.mockResolvedValue(null);
+        mockTx.order.create.mockResolvedValue({ id: 'o1', status: 'CREATED', customerId: 'CUST-1', items: [] });
+        mockPrisma.product.findMany.mockResolvedValue([
+          { sku: 'SKU-1', price: '10.50' },
+          { sku: 'SKU-2', price: '3.00' },
+        ]);
+      });
+
+      it('calcula itens e total pelo catálogo quando o cliente não informa preço', async () => {
+        await service.createOrder('t1', 'cid', 'key-total', 'CUST-1', [
+          { sku: 'SKU-1', qty: 2 },
+          { sku: 'SKU-2', qty: 1 },
+        ]);
+        expect(mockTx.order.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              totalAmount: '24.00',
+              items: {
+                create: [
+                  { sku: 'SKU-1', qty: 2, price: 10.5 },
+                  { sku: 'SKU-2', qty: 1, price: 3 },
+                ],
+              },
+            }),
+          }),
+        );
+      });
+
+      it('aceita preço informado igual ao do catálogo', async () => {
+        await service.createOrder('t1', 'cid', 'key-igual', 'CUST-1', [{ sku: 'SKU-1', qty: 1, price: 10.5 }]);
+        expect(mockTx.order.create).toHaveBeenCalled();
+      });
+
+      it('recusa preço informado diferente do catálogo e não cria o pedido', async () => {
+        await expect(
+          service.createOrder('t1', 'cid', 'key-barato', 'CUST-1', [{ sku: 'SKU-1', qty: 1, price: 0.01 }]),
+        ).rejects.toThrow(ConflictException);
+        expect(mockTx.order.create).not.toHaveBeenCalled();
+      });
+
+      it('recusa SKU desconhecido ou inativo, consultando só ativos do locatário', async () => {
+        await expect(
+          service.createOrder('t1', 'cid', 'key-sku', 'CUST-1', [{ sku: 'SKU-X', qty: 1 }]),
+        ).rejects.toThrow(UnprocessableEntityException);
+        expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({ tenantId: 't1', active: true }),
+          }),
+        );
+        expect(mockTx.order.create).not.toHaveBeenCalled();
+      });
+
+      it('mantém a impressão digital de chaves antigas e separa pedido sem preço', () => {
+        const comPreco = createOrderFingerprint('C', [{ sku: 'S', qty: 1, price: 10 }]);
+        expect(comPreco).toBe(createOrderFingerprint('C', [{ sku: 'S', qty: 1, price: 10.0 }]));
+        expect(comPreco).not.toBe(createOrderFingerprint('C', [{ sku: 'S', qty: 1 }]));
+      });
     });
 
     it('should return cached response on idempotency hit', async () => {
@@ -197,7 +244,7 @@ describe('OrdersService', () => {
       mockTx.outboxEvent.create.mockResolvedValue({});
 
       await service.createOrder('t1', 'cid', 'key-m', 'C1', [
-        { sku: 'S1', qty: 1, price: 5 },
+        { sku: 'SKU-1', qty: 1 },
       ]);
 
       expect(mockMetrics.ordersCreated.inc).toHaveBeenCalledWith({ tenant_id: 't1' });
@@ -209,12 +256,12 @@ describe('OrdersService', () => {
         id: 'o3',
         status: 'CREATED',
         customerId: 'C1',
-        items: [{ sku: 'S1', qty: 1, price: 5 }],
+        items: [{ sku: 'SKU-1', qty: 1 }],
       });
       mockTx.outboxEvent.create.mockResolvedValue({});
 
       await service.createOrder('t1', 'cid', 'key-a', 'C1', [
-        { sku: 'S1', qty: 1, price: 5 },
+        { sku: 'SKU-1', qty: 1 },
       ], 'actor@test');
 
       expect(mockAudit.log).toHaveBeenCalledWith(
@@ -238,7 +285,7 @@ describe('OrdersService', () => {
       mockTx.outboxEvent.create.mockResolvedValue({});
 
       await service.createOrder('t1', 'cid', 'key-c', 'C1', [
-        { sku: 'S1', qty: 1, price: 5 },
+        { sku: 'SKU-1', qty: 1 },
       ]);
 
       expect(mockRedis.idemSet).toHaveBeenCalledWith(
@@ -262,7 +309,7 @@ describe('OrdersService', () => {
       mockTx.outboxEvent.create.mockResolvedValue({});
 
       await service.createOrder('t1', 'cid', 'key-d', 'C1', [
-        { sku: 'S1', qty: 1, price: 5 },
+        { sku: 'SKU-1', qty: 1 },
       ]);
 
       expect(mockAudit.log).toHaveBeenCalledWith(

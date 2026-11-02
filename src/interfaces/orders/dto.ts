@@ -12,10 +12,14 @@ export class OrderItemDto {
   @Min(1)
   qty!: number;
 
-  @ApiProperty({ minimum: 0 })
+  @ApiPropertyOptional({
+    minimum: 0,
+    description: 'Preço visto pelo cliente. O preço do pedido vem do catálogo; se este for diferente, a API responde 409.',
+  })
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  price!: number;
+  price?: number;
 }
 
 export class CreateOrderRequestDto {
