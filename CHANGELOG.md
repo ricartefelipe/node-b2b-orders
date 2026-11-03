@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.7] - 2026-11-03
+
+### Fixed
+- o despachante do outbox encerra quando o canal fecha: a cada reconexão com o RabbitMQ, o anterior seguia em laço com o canal fechado, e pedidos novos ficavam em `CREATED`. Depois de duas quedas do broker, o pedido é pago em cerca de 4 s.
+
+### Changed
+- RabbitMQ 4.4.0 no ambiente local, nos testes de ponta a ponta e na CI; `amqplib` passa a exigir 0.10.7 ou mais nova.
+
 ## [1.4.6] - 2026-11-03
 
 ### Fixed
