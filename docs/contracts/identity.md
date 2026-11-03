@@ -39,13 +39,19 @@ O JWT contém claims padronizadas que permitem autorização multi-tenant consis
   "sub": "user@example.com",
   "tid": "550e8400-e29b-41d4-a716-446655440000",
   "roles": ["admin", "ops"],
-  "perms": ["tenants:read", "tenants:write", "orders:write"],
+  "perms": ["tenants:read", "orders:write"],
   "plan": "enterprise",
   "region": "us-east-1",
   "iss": "spring-saas-core",
   "exp": 1709650800
 }
 ```
+
+## Escopo do token
+
+- **Plataforma:** `tid` igual a `*`, ou o locatário de plataforma com o papel `admin`. Vê todos os locatários e escolhe um deles em `X-Tenant-Id`.
+- **Locatário:** qualquer outro `tid`. Vê só o próprio; `X-Tenant-Id` de outro locatário responde 403. Mesmo com a permissão no token, criar, alterar e apagar locatários, editar políticas, métricas, analytics e assistente de governança são só da plataforma.
+- `tenants:write` e `policies:write` só são emitidas para a plataforma.
 
 ---
 
