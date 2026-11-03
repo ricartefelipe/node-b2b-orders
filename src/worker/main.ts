@@ -105,14 +105,21 @@ function buildPublishBreaker(ch: amqp.Channel): CircuitBreaker<[string, string, 
   );
 }
 
-async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: string) {
+export async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: string) {
   const publishBreaker = buildPublishBreaker(ch);
 
   publishBreaker.on('open', () => log('circuit.open', { breaker: 'rabbitmq-publish' }));
   publishBreaker.on('halfOpen', () => log('circuit.halfOpen', { breaker: 'rabbitmq-publish' }));
   publishBreaker.on('close', () => log('circuit.closed', { breaker: 'rabbitmq-publish' }));
 
-  while (true) {
+  // O canal fecha quando a conexão cai, e a reconexão abre outro despachante com o canal novo.
+  // Sem parar aqui, este laço seguiria disputando o outbox e falhando com "Channel closed".
+  let channelClosed = false;
+  ch.on('close', () => {
+    channelClosed = true;
+  });
+
+  while (!channelClosed && !shutdownRequested) {
     if (publishBreaker.opened) {
       log('outbox.skipped_circuit_open');
       await sleep(5_000);
@@ -133,6 +140,7 @@ async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: 
     });
 
     for (const ev of batch) {
+      if (channelClosed) break;
       const claimed = await prisma.outboxEvent.updateMany({
         where: { id: ev.id, lockedAt: ev.lockedAt },
         data: { lockedAt: now, lockedBy: workerId },
@@ -193,6 +201,7 @@ async function dispatchOutbox(prisma: PrismaClient, ch: amqp.Channel, workerId: 
 
     await sleep(1_000);
   }
+  if (channelClosed) log('outbox.dispatcher_stopped', { workerId, reason: 'channel_closed' });
 }
 
 export async function cleanupOldAuditLogs(prisma: PrismaClient): Promise<void> {
