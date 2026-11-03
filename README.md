@@ -364,7 +364,7 @@ Validação completa: `./scripts/smoke.sh`
 | ORM | Prisma 5 |
 | Banco | PostgreSQL 16 |
 | Cache | Redis 7 |
-| Queue | RabbitMQ 3 |
+| Queue | RabbitMQ 4 |
 | Auth | JWT HS256 + Passport |
 | Métricas | prom-client + Prometheus |
 | Dashboards | Grafana |
