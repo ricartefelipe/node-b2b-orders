@@ -1,5 +1,6 @@
 # Worker service — same build as API, different entrypoint
-FROM node:20-alpine AS build
+# node:22-alpine
+FROM node@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS build
 
 WORKDIR /app
 
@@ -23,7 +24,8 @@ RUN for i in 1 2 3; do \
     done
 
 # ---
-FROM node:20-alpine AS runtime
+# node:22-alpine
+FROM node@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS runtime
 
 WORKDIR /app
 

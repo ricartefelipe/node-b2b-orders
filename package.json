@@ -82,7 +82,7 @@
     "typescript": "^5.3.3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "overrides": {
     "path-to-regexp": "8.4.0",
