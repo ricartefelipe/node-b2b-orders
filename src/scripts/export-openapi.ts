@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 
 import { AppModule } from '../app.module';
+import { SERVICE_VERSION } from '../shared/version';
 
 async function main() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
@@ -14,7 +15,7 @@ async function main() {
 
   const config = new DocumentBuilder()
     .setTitle('node-b2b-orders')
-    .setVersion('1.0.0')
+    .setVersion(SERVICE_VERSION)
     .addServer('http://localhost:3000', 'Local')
     .addBearerAuth()
     .build();
