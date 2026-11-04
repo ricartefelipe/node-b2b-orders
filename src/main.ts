@@ -18,6 +18,7 @@ import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { RedisService } from './infrastructure/redis/redis.service';
 import { ProblemDetailsFilter } from './shared/filters/problem-details.filter';
+import { SERVICE_VERSION } from './shared/version';
 import { DecoratedFastifyRequest } from './shared/auth/auth-request.interface';
 
 /** Rotas que não podem sofrer chaos/limites: probes e documentação. */
@@ -69,7 +70,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('node-b2b-orders')
-    .setVersion('1.0.0')
+    .setVersion(SERVICE_VERSION)
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);

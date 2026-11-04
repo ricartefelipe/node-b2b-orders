@@ -1,6 +1,6 @@
 {
   "name": "node-b2b-orders",
-  "version": "1.0.0",
+  "version": "1.4.7",
   "private": true,
   "description": "NestJS + Prisma demo: B2B Orders & Inventory with outbox, saga, idempotency, RBAC/ABAC, metrics.",
   "author": "felipericarte <felipericartem@gmail.com>",
