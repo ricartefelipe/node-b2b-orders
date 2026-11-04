@@ -5,4 +5,4 @@
  * `package.json`, ao `docs/api/openapi.json` e à entrada mais recente do CHANGELOG, então a release falha na CI
  * se esquecer dela.
  */
-export const SERVICE_VERSION = '1.4.7';
+export const SERVICE_VERSION = '1.4.8';
