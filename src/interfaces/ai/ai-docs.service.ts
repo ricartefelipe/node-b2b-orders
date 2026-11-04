@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
+import { SERVICE_VERSION } from '../../shared/version';
 
 export interface ApiEndpoint {
   method: string;
@@ -60,7 +61,7 @@ export class AiDocsService {
   private getApiOverview() {
     return {
       title: 'node-b2b-orders',
-      version: '1.0.0',
+      version: SERVICE_VERSION,
       basePath: '/v1',
       endpoints: [
         { method: 'POST', path: '/v1/orders', description: 'Create order', permission: 'orders:write' },

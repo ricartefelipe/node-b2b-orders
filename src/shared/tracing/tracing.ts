@@ -6,6 +6,8 @@ import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 
+import { SERVICE_VERSION } from '../version';
+
 const OTEL_ENABLED = process.env.OTEL_ENABLED !== 'false';
 const OTEL_DEBUG = process.env.OTEL_LOG_LEVEL === 'debug';
 
@@ -24,7 +26,7 @@ if (OTEL_ENABLED) {
   sdk = new NodeSDK({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: 'node-b2b-orders',
-      [ATTR_SERVICE_VERSION]: process.env.npm_package_version || '1.0.0',
+      [ATTR_SERVICE_VERSION]: process.env.APP_VERSION || SERVICE_VERSION,
     }),
     traceExporter: exporter,
     instrumentations: [new HttpInstrumentation(), new FastifyInstrumentation()],
